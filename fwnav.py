@@ -30,8 +30,10 @@ SECTION_JA = {
     "default_value": "Changes in default values",
     "table_size": "Changes in table size",
     "removed": "機能の削除・非対応化",
-    "known_issue": "Known issues（上げた先の版）",
+    "known_issue": "Known issues（入れる版）",
+    "upgrade_bug": "途中の版の不具合（後の版で修正）",
 }
+ANY = object()  # VDOM を問わない
 SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
 SECRET_KEYS = re.compile(r"(passw|secret|psk|key$|-key|token|community|passphrase|private)", re.I)
 
@@ -48,7 +50,8 @@ def tokenize(line):
 def flatten(text):
     """config を (vdom, path, key, value) の並びと、ブロックの一覧にする。
 
-    戻り値: lines [(vdom, path, key, value)], blocks {path: vdom}, header {model, version}
+    戻り値: lines [(vdom, path, key, value)], blocks {(vdom, path): vdom}, header {model, version}
+    同じ名前のブロックでも VDOM が違えば別のものとして持つ。
     key が None の行はブロックそのもの（中身が空の edit も拾うため）。
     """
     header = {}
@@ -81,7 +84,7 @@ def flatten(text):
                 continue
             stack.append(("config", name))
             p = path_of(stack)
-            blocks.setdefault(p, vdom)
+            blocks.setdefault((vdom, p), vdom)
         elif cmd == "edit":
             name = " ".join(t[1:])
             if len(stack) == 1 and stack[0] == ("scope", "vdom"):
@@ -90,7 +93,7 @@ def flatten(text):
                 continue
             stack.append(("edit", name))
             p = path_of(stack)
-            blocks.setdefault(p, vdom)
+            blocks.setdefault((vdom, p), vdom)
             lines.append((vdom, p, None, None))
         elif cmd in ("next", "end"):
             if stack:
@@ -107,7 +110,7 @@ def flatten(text):
             key = t[1]
             value = " ".join(t[2:])
             p = path_of(stack)
-            blocks.setdefault(p, vdom)
+            blocks.setdefault((vdom, p), vdom)
             if cmd == "unset":
                 continue
             lines.append((vdom, p, key, value))
@@ -167,23 +170,31 @@ class Config:
     def __init__(self, text):
         self.lines, self.blocks, self.header = flatten(text)
 
-    def match_blocks(self, pat):
+    def match_blocks(self, pat, vdom=ANY):
+        """(vdom, path) の並び。"""
         r = path_re(pat)
-        return [p for p in self.blocks if r.match(p)]
+        return [b for b in self.blocks if r.match(b[1]) and (vdom is ANY or b[0] == vdom)]
 
-    def match_lines(self, pat, key=None):
+    def match_lines(self, pat, key=None, vdom=ANY):
         r = path_re(pat)
         out = []
         for ln in self.lines:
-            if ln[2] is None or not r.match(ln[1]):
+            if ln[2] is None or not r.match(ln[1]) or (vdom is not ANY and ln[0] != vdom):
                 continue
             if key is None or ln[2].lower() == key.lower():
                 out.append(ln)
         return out
 
+    def zone_members(self, name, vdom):
+        """system zone[name] の interface（同じ VDOM）。ゾーンでなければ空。"""
+        for ln in self.lines:
+            if ln[0] == vdom and ln[2] == "interface" and ln[1].lower() == f"system zone[{name}]".lower():
+                return ln, values_of(ln[3])
+        return None, []
+
 
 def bind_block(c, block):
-    """中の条件の path を、具体的なブロックの名前に置き換える。"""
+    """中の条件の path を、具体的なブロック（(vdom, path)）に置き換える。"""
     if isinstance(c, list):
         return [bind_block(x, block) for x in c]
     if not isinstance(c, dict):
@@ -192,7 +203,8 @@ def bind_block(c, block):
         return c
     out = {k: bind_block(v, block) if k in ("any", "all", "not") else v for k, v in c.items()}
     if any(k in c for k in ("key", "op")) and "path" not in c:
-        out["path"] = "=" + block
+        out["path"] = "=" + block[1]
+        out["_vdom"] = block[0]
     return out
 
 
@@ -230,31 +242,45 @@ def eval_cond(cfg, c):
     pat = c["path"]
     key = c.get("key")
     op = c.get("op", "exists")
+    vd = c.get("_vdom", ANY)
     if op == "unset":
         if key is None:
             raise ValueError(f"unset には key が要る: {c}")
-        bl = cfg.match_blocks(pat)
+        bl = cfg.match_blocks(pat, vd)
         if not bl:
             if "[" in pat or "*" in pat or pat.startswith("="):
                 return False, []
             return True, [(None, pat, None, None)]
         missing = []
-        for b in bl:
-            if not any(ln[1] == b and ln[2] and ln[2].lower() == key.lower() for ln in cfg.lines):
-                missing.append((cfg.blocks[b], b, key, "(未設定＝既定値)"))
+        for bv, b in bl:
+            if not any(ln[0] == bv and ln[1] == b and ln[2] and ln[2].lower() == key.lower() for ln in cfg.lines):
+                missing.append((bv, b, key, "(未設定＝既定値)"))
         return bool(missing), missing
     if key is None:
-        bl = cfg.match_blocks(pat)
+        bl = cfg.match_blocks(pat, vd)
         if op == "absent":
             return (not bl), []
-        return bool(bl), [(cfg.blocks[b], b, None, None) for b in bl]
-    ls = cfg.match_lines(pat, key)
+        return bool(bl), [(bv, b, None, None) for bv, b in bl]
+    ls = cfg.match_lines(pat, key, vd)
     if op == "exists":
         return bool(ls), ls
     if op == "absent":
         return (not ls), []
     want = c.get("value")
     hits = []
+    if op == "intf_regex":
+        # インターフェースの名前が正規表現に合うか。ゾーンの名前ならメンバーもたどる
+        rx = re.compile(want, re.I)
+        for ln in ls:
+            for name in values_of(ln[3]):
+                if rx.search(name):
+                    hits.append(ln)
+                    break
+                zl, members = cfg.zone_members(name, ln[0])
+                if any(rx.search(m) for m in members):
+                    hits += [ln, zl]
+                    break
+        return bool(hits), hits
     for ln in ls:
         vals = [x.lower() for x in values_of(ln[3])]
         if op == "eq":
@@ -337,18 +363,42 @@ def already_passed(it, frm):
     return all(vtuple(br) < f[:2] for br in intro)
 
 
+def upgrade_bug_hits(it, installed):
+    """後の版で直った不具合が、入れる版（途中の版と上げた先）のどれかにあるか。
+
+    fixed_in（直った版）より前で、present_from（無ければその枝の x.y.0）以後の版が当たる。
+    """
+    fx = vtuple(it["fixed_in"])
+    pf = vtuple(it.get("present_from") or f"{fx[0]}.{fx[1]}.0")
+    return [v for v in installed if pf <= vtuple(v) < fx]
+
+
 def select_items(kb, frm, to, hops):
     vers = versions_in_range(kb.keys(), frm, to, hops)
+    installed = sorted(set(hops) | {to}, key=vtuple)
     items, seen = [], set()
     # 同じ注意は後の版ほど書き直されているので、新しい版から見て最初のものを残す
     for v in reversed(vers):
         for it in kb[v]["items"]:
-            if it["section"] == "known_issue" and v != to:
+            if it["section"] == "upgrade_bug":
+                continue
+            if it["section"] == "known_issue" and v not in installed:
                 continue
             if already_passed(it, frm):
                 continue
             # 同じ注意が版をまたいで繰り返し載るので、Bug ID か見出しで一つにまとめる
             dk = it.get("dedupe") or (it.get("bug_id") and f"bug:{it['bug_id']}:{it['section']}") or None
+            if dk and dk in seen:
+                continue
+            if dk:
+                seen.add(dk)
+            items.append(dict(it, version=v, reviewed=kb[v].get("reviewed", False)))
+    # 途中の版の不具合（後の版の Resolved issues に載ったもの）は、版の範囲によらず全ファイルから拾う
+    for v in sorted(kb, key=vtuple, reverse=True):
+        for it in kb[v]["items"]:
+            if it["section"] != "upgrade_bug" or not upgrade_bug_hits(it, installed):
+                continue
+            dk = it.get("dedupe") or (it.get("bug_id") and f"bug:{it['bug_id']}:upgrade_bug")
             if dk and dk in seen:
                 continue
             if dk:
@@ -423,14 +473,35 @@ def ev_lines(ev, limit=8):
     return out
 
 
+def meta_notes(meta):
+    """結果の先頭に出す注意（ブラウザ版と同じ文面）。"""
+    out = []
+    if meta.get("known_issue_missing"):
+        out.append(f"★ 上げた先（{meta['to']}）の Known issues は知識ベースに入っていない")
+    if meta.get("hop_ki_missing"):
+        out.append(f"★ 途中の版（{', '.join(meta['hop_ki_missing'])}）の Known issues は知識ベースに入っていない")
+    if meta.get("ki_partial"):
+        out.append(f"途中の版（{', '.join(meta['ki_partial'])}）の Known issues は、上げる作業に関わるもの（設定の消失・通信断・管理断など）だけを見ている")
+    if not meta.get("hops"):
+        out.append("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）")
+    return out
+
+
+def ki_cov(kb, v):
+    """その版の Known issues の収録の度合い: True（全部）／"upgrade"（上げる作業に関わるものだけ）／False（無し）。"""
+    if v not in kb:
+        return False
+    return kb[v].get("coverage", {}).get("known_issue", True)
+
+
 def write_report(res, meta, out):
     L = [f"# ファームアップ影響確認 {meta['from']} → {meta['to']}", ""]
     L.append(f"- 機種: {meta['model'] or '不明'}")
     L.append(f"- 通るパス: {' → '.join([meta['from']] + meta['hops'] + [meta['to']])}")
     L.append(f"- 見たリリースノートの版: {', '.join(meta['versions'])}")
     L.append(f"- 知識ベースで人が確かめていない版: {', '.join(meta['unreviewed']) or 'なし'}")
-    if meta.get("known_issue_missing"):
-        L.append(f"- ★ 上げた先（{meta['to']}）の Known issues は知識ベースに入っていない")
+    for line in meta_notes(meta):
+        L.append(f"- {line}")
     missing = meta.get("kb_missing") or []
     if missing:
         L.append(f"- ★ 知識ベースが無い版: {', '.join(missing)}（この版の変更は見ていない）")
@@ -584,7 +655,9 @@ def cmd_check(a):
     meta = {"from": frm, "to": a.to, "hops": hops, "model": model, "versions": vers,
             "unreviewed": [v for v in vers if not kb[v].get("reviewed")],
             "kb_missing": [v for v in exp if v not in kb], "config": Path(a.config).name,
-            "known_issue_missing": a.to in kb and not kb[a.to].get("coverage", {}).get("known_issue", True)}
+            "known_issue_missing": a.to in kb and ki_cov(kb, a.to) is False,
+            "hop_ki_missing": [h for h in hops if ki_cov(kb, h) is False],
+            "ki_partial": [h for h in hops if ki_cov(kb, h) == "upgrade"]}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     write_report(res, meta, out)

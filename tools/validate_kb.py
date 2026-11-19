@@ -18,7 +18,7 @@ import fwnav  # noqa: E402
 SECTIONS = set(fwnav.SECTION_JA)
 JUDGES = {"auto", "ai", "manual"}
 SEVS = {"high", "medium", "low"}
-OPS = {"exists", "absent", "eq", "ne", "in", "regex", "unset"}
+OPS = {"exists", "absent", "eq", "ne", "in", "regex", "unset", "intf_regex"}
 REQ = ["id", "section", "title", "summary", "severity", "judge", "impact", "action", "url"]
 
 
@@ -51,7 +51,7 @@ def check_cond(c, where, errs, inside_block=False):
     op = c.get("op", "exists")
     if op not in OPS:
         errs.append(f"{where}: 知らない op {op}")
-    if op in ("eq", "ne", "regex") and "value" not in c:
+    if op in ("eq", "ne", "regex", "intf_regex") and "value" not in c:
         errs.append(f"{where}: {op} には value が要る")
     if op == "in" and not isinstance(c.get("value"), list):
         errs.append(f"{where}: in の value は配列")
@@ -102,6 +102,14 @@ def check_file(f, cfgs, groups):
             for n in m.get("only", []) + m.get("exclude", []):
                 if n.islower() and n not in groups:
                     errs.append(f"{w}: models の群 {n} が models.json に無い")
+        if it.get("section") == "upgrade_bug":
+            if not it.get("fixed_in"):
+                errs.append(f"{w}: upgrade_bug には fixed_in（直った版）が要る")
+            elif fwnav.vtuple(it["fixed_in"]) <= fwnav.vtuple(d.get("version", "0.0.0")):
+                errs.append(f"{w}: upgrade_bug は不具合がある版のファイルに書く（fixed_in より前の版）")
+        cov = d.get("coverage", {}).get("known_issue", True)
+        if cov not in (True, False, "upgrade"):
+            errs.append(f"{f.name}: coverage.known_issue は true / false / \"upgrade\"")
         intro = it.get("introduced")
         if intro is not None and not isinstance(intro, (str, dict)):
             errs.append(f"{w}: introduced は文字列か dict")

@@ -297,10 +297,8 @@ __ENGINE_JS__
     note("機種: " + (meta.model || "不明") + "　／　通るパス: " + [meta.from].concat(meta.hops, [meta.to]).join(" → "));
     note("見たリリースノートの版: " + (meta.versions.join(", ") || "なし"));
     if (meta.unreviewed.length) note("人が原文と突き合わせていない版: " + meta.unreviewed.join(", "), true);
-    if (meta.known_issue_missing) note("上げる先（" + meta.to + "）の Known issues は知識ベースに入っていません", true);
+    F.metaNotes(meta).forEach(function (n) { note(n.replace(/^★ /, ""), n.indexOf("★") === 0); });
     if (meta.kb_missing.length) note("知識ベースが無い版: " + meta.kb_missing.join(", ") + "（この版の変更は見ていません）", true);
-    if (!meta.hops.length && cmp(meta.from.split(".").slice(0, 2).join(".") + ".0", meta.to.split(".").slice(0, 2).join(".") + ".0") !== 0)
-      note("途中の版が空なので、上げる前の枝の版をすべて見ています（多めに出ます）", true);
     if (!meta.model) note("機種が分からないので、機種に限った項目は「要確認」になります", true);
 
     var c = F.counts(out.results), chips = $("chips"); chips.innerHTML = "";

@@ -22,8 +22,9 @@ python3 tools/fetch_release_notes.py 7.6.9
 | `changes-in-gui-behavior.md` | 運用に効くもの（設定の場所が消えるなど）だけ |
 | `upgrade-information.md` とその下（`fortigate-6000-…`・`fortigate-vm-…` など） | アップグレードの手順や条件に効くものだけ |
 | `new-features-or-enhancements.md` | **既存の設定の動きが変わる・機能が無くなる**ものだけ（区分 `removed` か該当する区分）。新機能の紹介は入れない |
-| `known-issues.md` | 上げた先として使う版だけ（入れないときはファイルの先頭に `"coverage": {"known_issue": false}`） |
-| `resolved-issues.md`・`product-integration-and-support.md`・`language-support.md`・`firmware-image-checksums.md`・`change-log.md`・`introduction-…`・`*-engine.md`・`virtualization-environments.md`・`agentless-vpn-support.md` | 読まない |
+| `known-issues.md` | 上げた先として使う版は全部。途中の版として通る版は、上げる作業に関わるもの（設定の消失・変換の失敗・通信断・管理断・次の版へ上げられない）だけ入れ、`"coverage": {"known_issue": "upgrade"}` にする。入れないときは `false` |
+| `resolved-issues.md` | 「〜へ上げると」「上げたあと」など、途中の版で起きた不具合だけを `upgrade_bug` として、不具合がある版のファイルに入れる（`docs/kb-schema.md`） |
+| `product-integration-and-support.md`・`language-support.md`・`firmware-image-checksums.md`・`change-log.md`・`introduction-…`・`*-engine.md`・`virtualization-environments.md`・`agentless-vpn-support.md` | 読まない |
 
 ## 3. 項目にするかどうか
 

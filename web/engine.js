@@ -13,8 +13,10 @@
     default_value: "Changes in default values",
     table_size: "Changes in table size",
     removed: "機能の削除・非対応化",
-    known_issue: "Known issues（上げた先の版）"
+    known_issue: "Known issues（入れる版）",
+    upgrade_bug: "途中の版の不具合（後の版で修正）"
   };
+  var ANY = {};  // VDOM を問わない
   var SEV_ORDER = { high: 0, medium: 1, low: 2 };
   var ORDER = ["該当", "AI 判定", "要確認", "非該当"];
   var SECRET_KEYS = /(passw|secret|psk|key$|-key|token|community|passphrase|private)/i;
@@ -68,6 +70,8 @@
     return out.join(" ");
   }
 
+  function bkey(vdom, p) { return String(vdom) + "\u0000" + p; }
+
   function flatten(text) {
     var header = {};
     var m = /#config-version=([A-Z0-9-]+?)-(\d+\.\d+\.\d+)/.exec(text);
@@ -96,7 +100,7 @@
         }
         stack.push(["config", name]);
         p = pathOf(stack);
-        if (!blocks.has(p)) blocks.set(p, vdom);
+        if (!blocks.has(bkey(vdom, p))) blocks.set(bkey(vdom, p), [vdom, p]);
       } else if (cmd === "edit") {
         name = t.slice(1).join(" ");
         if (stack.length === 1 && stack[0][0] === "scope" && stack[0][1] === "vdom") {
@@ -106,7 +110,7 @@
         }
         stack.push(["edit", name]);
         p = pathOf(stack);
-        if (!blocks.has(p)) blocks.set(p, vdom);
+        if (!blocks.has(bkey(vdom, p))) blocks.set(bkey(vdom, p), [vdom, p]);
         lines.push([vdom, p, null, null]);
       } else if (cmd === "next" || cmd === "end") {
         if (stack.length) {
@@ -117,7 +121,7 @@
         if (countQuotes(s) % 2 === 1 && !s.endsWith('"')) inMulti = true;
         if (t.length < 2) continue;
         p = pathOf(stack);
-        if (!blocks.has(p)) blocks.set(p, vdom);
+        if (!blocks.has(bkey(vdom, p))) blocks.set(bkey(vdom, p), [vdom, p]);
         if (cmd === "unset") continue;
         lines.push([vdom, p, t[1], t.slice(2).join(" ")]);
       }
@@ -169,18 +173,28 @@
     this.blocks = f.blocks;
     this.header = f.header;
   }
-  Config.prototype.matchBlocks = function (pat) {
+  // [vdom, path] の並び
+  Config.prototype.matchBlocks = function (pat, vdom) {
     var r = pathRe(pat), out = [];
-    this.blocks.forEach(function (_, p) { if (r.test(p)) out.push(p); });
+    this.blocks.forEach(function (b) { if (r.test(b[1]) && (vdom === undefined || vdom === ANY || b[0] === vdom)) out.push(b); });
     return out;
   };
-  Config.prototype.matchLines = function (pat, key) {
+  Config.prototype.matchLines = function (pat, key, vdom) {
     var r = pathRe(pat), out = [], k = key ? key.toLowerCase() : null;
     this.lines.forEach(function (ln) {
       if (ln[2] === null || !r.test(ln[1])) return;
+      if (vdom !== undefined && vdom !== ANY && ln[0] !== vdom) return;
       if (k === null || ln[2].toLowerCase() === k) out.push(ln);
     });
     return out;
+  };
+  Config.prototype.zoneMembers = function (name, vdom) {
+    var want = ("system zone[" + name + "]").toLowerCase();
+    for (var i = 0; i < this.lines.length; i++) {
+      var ln = this.lines[i];
+      if (ln[0] === vdom && ln[2] === "interface" && ln[1].toLowerCase() === want) return [ln, valuesOf(ln[3])];
+    }
+    return [null, []];
   };
 
   function bindBlock(c, block) {
@@ -191,7 +205,7 @@
     Object.keys(c).forEach(function (k) {
       out[k] = (k === "any" || k === "all" || k === "not") ? bindBlock(c[k], block) : c[k];
     });
-    if (("key" in c || "op" in c) && !("path" in c)) out.path = "=" + block;
+    if (("key" in c || "op" in c) && !("path" in c)) { out.path = "=" + block[1]; out._vdom = block[0]; }
     return out;
   }
 
@@ -224,29 +238,43 @@
     }
     if ("not" in c) return [!evalCond(cfg, c.not)[0], []];
     var pat = c.path, key = c.key === undefined ? null : c.key, op = c.op || "exists";
+    var vd = ("_vdom" in c) ? c._vdom : ANY;
     if (op === "unset") {
       if (key === null) throw new Error("unset には key が要る");
-      var bl = cfg.matchBlocks(pat);
+      var bl = cfg.matchBlocks(pat, vd);
       if (!bl.length) {
         if (pat.indexOf("[") >= 0 || pat.indexOf("*") >= 0 || pat[0] === "=") return [false, []];
         return [true, [[null, pat, null, null]]];
       }
       var kl = key.toLowerCase(), missing = [];
       bl.forEach(function (b) {
-        var found = cfg.lines.some(function (ln) { return ln[1] === b && ln[2] && ln[2].toLowerCase() === kl; });
-        if (!found) missing.push([cfg.blocks.get(b), b, key, "(未設定＝既定値)"]);
+        var found = cfg.lines.some(function (ln) { return ln[0] === b[0] && ln[1] === b[1] && ln[2] && ln[2].toLowerCase() === kl; });
+        if (!found) missing.push([b[0], b[1], key, "(未設定＝既定値)"]);
       });
       return [missing.length > 0, missing];
     }
     if (key === null) {
-      var bs = cfg.matchBlocks(pat);
+      var bs = cfg.matchBlocks(pat, vd);
       if (op === "absent") return [!bs.length, []];
-      return [bs.length > 0, bs.map(function (b) { return [cfg.blocks.get(b), b, null, null]; })];
+      return [bs.length > 0, bs.map(function (b) { return [b[0], b[1], null, null]; })];
     }
-    var ls = cfg.matchLines(pat, key);
+    var ls = cfg.matchLines(pat, key, vd);
     if (op === "exists") return [ls.length > 0, ls];
     if (op === "absent") return [!ls.length, []];
     var want = c.value, hits = [];
+    if (op === "intf_regex") {
+      // インターフェースの名前が正規表現に合うか。ゾーンの名前ならメンバーもたどる
+      var rx = new RegExp(want, "i");
+      ls.forEach(function (ln) {
+        var names = valuesOf(ln[3]);
+        for (var j = 0; j < names.length; j++) {
+          if (rx.test(names[j])) { hits.push(ln); return; }
+          var z = cfg.zoneMembers(names[j], ln[0]);
+          if (z[1].some(function (m) { return rx.test(m); })) { hits.push(ln, z[0]); return; }
+        }
+      });
+      return [hits.length > 0, hits];
+    }
     ls.forEach(function (ln) {
       var vals = valuesOf(ln[3]).map(function (x) { return x.toLowerCase(); }), hit;
       if (op === "eq") hit = vals.indexOf(String(want).toLowerCase()) >= 0;
@@ -304,18 +332,36 @@
     return keys.every(function (k) { return vcmp(vtuple(k), br(f)) < 0; });
   }
 
+  function upgradeBugHits(it, installed) {
+    var fx = vtuple(it.fixed_in);
+    var pf = vtuple(it.present_from || (fx[0] + "." + fx[1] + ".0"));
+    return installed.filter(function (v) { var t = vtuple(v); return vcmp(pf, t) <= 0 && vcmp(t, fx) < 0; });
+  }
+
   function selectItems(kb, frm, to, hops) {
     var vers = versionsInRange(Object.keys(kb.versions), frm, to, hops);
+    var installed = sortedVersions(Array.from(new Set(hops.concat([to]))));
     var items = [], seen = new Set();
     vers.slice().reverse().forEach(function (v) {
       kb.versions[v].items.forEach(function (it) {
-        if (it.section === "known_issue" && v !== to) return;
+        if (it.section === "upgrade_bug") return;
+        if (it.section === "known_issue" && installed.indexOf(v) < 0) return;
         if (alreadyPassed(it, frm)) return;
         var dk = it.dedupe || (it.bug_id ? "bug:" + it.bug_id + ":" + it.section : null);
         if (dk && seen.has(dk)) return;
         if (dk) seen.add(dk);
         var copy = Object.assign({}, it, { version: v, reviewed: !!kb.versions[v].reviewed });
         items.push(copy);
+      });
+    });
+    // 途中の版の不具合（後の版の Resolved issues に載ったもの）は、版の範囲によらず全ファイルから拾う
+    sortedVersions(Object.keys(kb.versions)).reverse().forEach(function (v) {
+      kb.versions[v].items.forEach(function (it) {
+        if (it.section !== "upgrade_bug" || !upgradeBugHits(it, installed).length) return;
+        var dk = it.dedupe || (it.bug_id ? "bug:" + it.bug_id + ":upgrade_bug" : null);
+        if (dk && seen.has(dk)) return;
+        if (dk) seen.add(dk);
+        items.push(Object.assign({}, it, { version: v, reviewed: !!kb.versions[v].reviewed }));
       });
     });
     // 版の古い順。同じ版の中は元の並びのまま（Python の安定ソートと同じ）
@@ -379,6 +425,22 @@
     return out;
   }
 
+  function kiCov(kb, v) {
+    var d = kb.versions[v];
+    if (!d) return false;
+    var c = (d.coverage || {}).known_issue;
+    return c === undefined ? true : c;
+  }
+
+  function metaNotes(meta) {
+    var out = [];
+    if (meta.known_issue_missing) out.push("★ 上げた先（" + meta.to + "）の Known issues は知識ベースに入っていない");
+    if (meta.hop_ki_missing.length) out.push("★ 途中の版（" + meta.hop_ki_missing.join(", ") + "）の Known issues は知識ベースに入っていない");
+    if (meta.ki_partial.length) out.push("途中の版（" + meta.ki_partial.join(", ") + "）の Known issues は、上げる作業に関わるもの（設定の消失・通信断・管理断など）だけを見ている");
+    if (!meta.hops.length) out.push("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）");
+    return out;
+  }
+
   // check の全体。opts: {from, to, hops: [], model}
   function check(kb, text, opts) {
     var cfg = new Config(text);
@@ -395,7 +457,9 @@
       unreviewed: sel.versions.filter(function (v) { return !kb.versions[v].reviewed; }),
       kb_missing: exp.filter(function (v) { return !kb.versions[v]; }),
       config: opts.configName || "",
-      known_issue_missing: !!target && !((target.coverage || {}).known_issue !== false)
+      known_issue_missing: !!target && kiCov(kb, to) === false,
+      hop_ki_missing: hops.filter(function (h) { return kiCov(kb, h) === false; }),
+      ki_partial: hops.filter(function (h) { return kiCov(kb, h) === "upgrade"; })
     };
     return { cfg: cfg, results: res, meta: meta };
   }
@@ -422,7 +486,7 @@
     L.push("- 通るパス: " + [meta.from].concat(meta.hops, [meta.to]).join(" → "));
     L.push("- 見たリリースノートの版: " + meta.versions.join(", "));
     L.push("- 知識ベースで人が確かめていない版: " + (meta.unreviewed.join(", ") || "なし"));
-    if (meta.known_issue_missing) L.push("- ★ 上げた先（" + meta.to + "）の Known issues は知識ベースに入っていない");
+    metaNotes(meta).forEach(function (n) { L.push("- " + n); });
     if (meta.kb_missing.length) L.push("- ★ 知識ベースが無い版: " + meta.kb_missing.join(", ") + "（この版の変更は見ていない）");
     L.push("");
     var c = counts(res);
@@ -576,7 +640,7 @@
     SECTION_JA: SECTION_JA, ORDER: ORDER,
     shlexSplit: shlexSplit, flatten: flatten, fmtLine: fmtLine, Config: Config, evalCond: evalCond,
     versionsInRange: versionsInRange, alreadyPassed: alreadyPassed, selectItems: selectItems,
-    modelOk: modelOk, check: check, counts: counts, evLines: evLines, isVersion: isVersion, sortedVersions: sortedVersions,
+    modelOk: modelOk, check: check, metaNotes: metaNotes, counts: counts, evLines: evLines, isVersion: isVersion, sortedVersions: sortedVersions,
     reportMarkdown: reportMarkdown, aiPromptMarkdown: aiPromptMarkdown, resultJson: resultJson, resultCsv: resultCsv,
     parseAiAnswers: parseAiAnswers, applyAiAnswers: applyAiAnswers
   };

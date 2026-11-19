@@ -37,8 +37,10 @@ TABLES = {
     "changes-in-gui-behavior": "gui",
     "new-features-or-enhancements": "new_feature",
 }
-SECTION_JA = dict(fwnav.SECTION_JA, gui="Changes in GUI behavior", new_feature="New features", notice="注意のページ")
-ROW = re.compile(r"^\| (\d{5,7}) \| (.*)")
+SECTION_JA = dict(fwnav.SECTION_JA, gui="Changes in GUI behavior", new_feature="New features", notice="注意のページ",
+                  resolved_upgrade="Resolved issues（途中の版。アップグレードに触れる行）")
+ROW = re.compile(r"^\| (\d{5,7}(?:\s*[,/、]\s*\d{5,7})*) \| (.*)")  # ID が複数並ぶ行もある
+UPGRADE_WORD = re.compile(r"upgrad", re.I)
 
 
 def source_url(text):
@@ -56,10 +58,46 @@ def excerpt(s, n=110):
     return s if len(s) <= n else s[:n] + "…"
 
 
-def raw_entries(vers, to):
+def resolved_versions(hops, to):
+    """途中の版の不具合が載りうる Resolved issues の版（途中の版より後で、同じ枝で、上げた先まで）。"""
+    out = set()
+    for d in CACHE.iterdir() if CACHE.is_dir() else []:
+        if not re.match(r"^\d+\.\d+\.\d+$", d.name):
+            continue
+        v = fwnav.vtuple(d.name)
+        if v > fwnav.vtuple(to):
+            continue
+        if any(fwnav.vtuple(h)[:2] == v[:2] and fwnav.vtuple(h) < v for h in hops):
+            out.add(d.name)
+    return sorted(out, key=fwnav.vtuple)
+
+
+def add_row(out, ids, v, sec, cat, text, url):
+    key = f"bug:{ids[0]}"
+    if key not in out:
+        out[key] = {"key": key, "version": v, "section": sec, "ident": ", ".join(ids), "ids": ids,
+                    "category": cat, "text": excerpt(text), "url": url, "versions": [v]}
+    elif v not in out[key]["versions"]:
+        out[key]["versions"].append(v)
+
+
+def raw_entries(vers, to, hops=()):
     """原文の項目を (key, version, section, ident, category, text, url) で返す。key でまとめる。"""
     out = {}
-    for v in vers:
+    installed = set(hops) | {to}
+    for v in resolved_versions(hops, to):
+        f = CACHE / v / "resolved-issues.md"
+        if not f.exists():
+            continue
+        text = f.read_text(encoding="utf-8")
+        cat = ""
+        for line in text.splitlines():
+            if line.startswith("#"):
+                cat = line.lstrip("# ").strip()
+            m = ROW.match(line)
+            if m and UPGRADE_WORD.search(m.group(2)):
+                add_row(out, re.findall(r"\d{5,7}", m.group(1)), v, "resolved_upgrade", cat, m.group(2), source_url(text))
+    for v in sorted(set(vers) | installed, key=fwnav.vtuple):
         d = CACHE / v
         if not d.is_dir():
             continue
@@ -68,7 +106,9 @@ def raw_entries(vers, to):
             text = f.read_text(encoding="utf-8")
             url = source_url(text)
             if slug in TABLES or slug == "known-issues":
-                if slug == "known-issues" and v != to:
+                if slug == "known-issues" and v not in installed:
+                    continue
+                if slug in TABLES and v not in vers:
                     continue
                 sec = "known_issue" if slug == "known-issues" else TABLES[slug]
                 cat = ""
@@ -77,13 +117,8 @@ def raw_entries(vers, to):
                         cat = line.lstrip("# ").strip()
                     m = ROW.match(line)
                     if m:
-                        key = f"bug:{m.group(1)}"
-                        if key not in out:
-                            out[key] = {"key": key, "version": v, "section": sec, "ident": m.group(1),
-                                        "category": cat, "text": excerpt(m.group(2)), "url": url, "versions": [v]}
-                        elif v not in out[key]["versions"]:
-                            out[key]["versions"].append(v)
-            elif not NOT_NOTICE.match(slug):
+                        add_row(out, re.findall(r"\d{5,7}", m.group(1)), v, sec, cat, m.group(2), url)
+            elif not NOT_NOTICE.match(slug) and v in vers:
                 pid = page_id(url)
                 key = f"page:{pid or slug}"
                 title = next((ln.lstrip("# ").strip() for ln in text.splitlines() if ln.startswith("#")), slug)
@@ -128,7 +163,7 @@ def main():
     kb, _ = fwnav.load_kb()
     known = sorted({p.name for p in CACHE.iterdir() if p.is_dir()} | set(kb), key=fwnav.vtuple)
     vers = fwnav.versions_in_range(known, a.frm, a.to, hops)
-    entries = raw_entries(vers, a.to)
+    entries = raw_entries(vers, a.to, hops)
     bugs, pages, slugs, where = kb_index(kb)
     reasons = {}
     for f in sorted(EXCLUDED_DIR.glob("*.json")) if EXCLUDED_DIR.is_dir() else []:
@@ -137,15 +172,16 @@ def main():
     for e in entries:
         k = e["key"]
         hit = None
-        if k.startswith("bug:") and e["ident"] in bugs:
-            hit = where[k]
+        if k.startswith("bug:") and any(i in bugs for i in e["ids"]):
+            hit = next(where[f"bug:{i}"] for i in e["ids"] if i in bugs)
         elif k.startswith("page:") and (k[5:] in pages or e["ident"] in slugs):
             hit = where.get(k) or where.get(f"slug:{e['ident']}")
         e["status"] = "入れた" if hit else "外した"
         e["kb_id"] = hit or ""
         e["reason"] = "" if hit else reasons.get(k, "")
         rows.append(e)
-    order = {"notice": 0, "cli": 1, "default_behavior": 2, "default_value": 3, "table_size": 4, "gui": 5, "known_issue": 6, "new_feature": 7}
+    order = {"notice": 0, "cli": 1, "default_behavior": 2, "default_value": 3, "table_size": 4, "gui": 5, "known_issue": 6,
+             "resolved_upgrade": 7, "new_feature": 8}
     rows.sort(key=lambda r: (order.get(r["section"], 9), r["status"] != "外した", fwnav.vtuple(r["version"]), r["ident"]))
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -160,7 +196,8 @@ def main():
     L = [f"# 知識ベースの網羅状況 {a.frm} → {a.to}", "",
          f"- 通るパス: {' → '.join([a.frm] + hops + [a.to])}",
          f"- 見た版: {', '.join(vers)}",
-         "- 版をまたいで同じ項目は 1 件に数える（Bug ID・ページ番号）。Known issues は上げた先の版だけ", "",
+         "- 版をまたいで同じ項目は 1 件に数える（Bug ID・ページ番号）",
+         "- Known issues は入れる版（途中の版と上げた先）。Resolved issues は途中の版より後の版のうち、アップグレードに触れる行", "",
          "| 区分 | 原文の件数（重複なし） | 入れた | 外した | うち理由なし |", "|---|---|---|---|---|"]
     tot = [0, 0, 0, 0]
     for sec in order:

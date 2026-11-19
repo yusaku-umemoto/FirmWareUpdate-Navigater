@@ -61,10 +61,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "any": [
@@ -106,10 +115,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "any": [

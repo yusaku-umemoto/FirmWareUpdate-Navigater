@@ -3,22 +3,61 @@
   "version": "7.4.7",
   "source": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes",
   "reviewed": false,
-  "coverage": {"known_issue": false},
+  "coverage": {
+    "known_issue": "upgrade"
+  },
   "items": [
     {
       "id": "7.4.7-UP-2gb-proxy",
       "section": "upgrade",
       "dedupe": "sn:2-gb-ram-fortigate-models-no-longer-support-most-fortios-proxy-related-features",
-      "introduced": {"7.4": "7.4.4", "7.6": "7.6.0"},
+      "introduced": {
+        "7.4": "7.4.4",
+        "7.6": "7.6.0"
+      },
       "title": "2GB RAM 機でプロキシ系の機能が使えない",
       "summary": "7.4.4 から、2GB 以下の機種（40F・60E・60F・80E・90E 系と FGR-60F の 2GB 版）ではプロキシ系の機能が使えない。",
       "severity": "high",
-      "models": {"only": ["FGT40F", "FWF40F", "FGT41F", "FWF41F", "FGT60F", "FWF60F", "FGT61F", "FWF61F", "FGR60F", "FGT60E", "FWF60E", "FGT61E", "FWF61E", "FGT80E", "FGT81E", "FGT90E", "FGT91E"]},
-      "when": {"any": [
-        {"path": "firewall policy[*]", "key": "inspection-mode", "op": "eq", "value": "proxy"},
-        {"path": "web-proxy explicit", "key": "status", "op": "eq", "value": "enable"},
-        {"path": "firewall proxy-policy[*]"}
-      ]},
+      "models": {
+        "only": [
+          "FGT40F",
+          "FWF40F",
+          "FGT41F",
+          "FWF41F",
+          "FGT60F",
+          "FWF60F",
+          "FGT61F",
+          "FWF61F",
+          "FGR60F",
+          "FGT60E",
+          "FWF60E",
+          "FGT61E",
+          "FWF61E",
+          "FGT80E",
+          "FGT81E",
+          "FGT90E",
+          "FGT91E"
+        ]
+      },
+      "when": {
+        "any": [
+          {
+            "path": "firewall policy[*]",
+            "key": "inspection-mode",
+            "op": "eq",
+            "value": "proxy"
+          },
+          {
+            "path": "web-proxy explicit",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "firewall proxy-policy[*]"
+          }
+        ]
+      },
       "judge": "auto",
       "impact": "プロキシモードのポリシー・明示プロキシが使えなくなり、検査の方法が変わる（フローベースになる）。",
       "action": "プロキシに頼っている検査（Web フィルタの一部・DLP など）を洗い出し、フローベースで足りるか確かめる。足りなければ上位機種を検討する。",
@@ -28,14 +67,28 @@
       "id": "7.4.7-UP-fortiswitch-empty-password",
       "section": "upgrade",
       "dedupe": "sn:managed-fortiswitch-do-not-permit-empty-passwords-for-administrator-accounts",
-      "introduced": {"7.4": "7.4.6", "7.6": "7.6.1"},
+      "introduced": {
+        "7.4": "7.4.6",
+        "7.6": "7.6.1"
+      },
       "title": "管理下の FortiSwitch で空の admin パスワードが使えなくなる",
       "summary": "7.4.6 から、FortiSwitch の admin のパスワードが空だと、FortiGate が無作為のパスワードを付ける。",
       "severity": "high",
-      "when": {"all": [
-        {"path": "switch-controller managed-switch[*]"},
-        {"not": {"path": "switch-controller switch-profile[*]", "key": "login-passwd-override", "op": "eq", "value": "enable"}}
-      ]},
+      "when": {
+        "all": [
+          {
+            "path": "switch-controller managed-switch[*]"
+          },
+          {
+            "not": {
+              "path": "switch-controller switch-profile[*]",
+              "key": "login-passwd-override",
+              "op": "eq",
+              "value": "enable"
+            }
+          }
+        ]
+      },
       "judge": "manual",
       "impact": "admin のパスワードが空の FortiSwitch に、直接ログインできなくなる。",
       "action": "各 FortiSwitch に admin のパスワードがあるか確かめる。無ければ switch-profile で login-passwd-override enable と login-passwd を設定する。",
@@ -45,23 +98,55 @@
       "id": "7.4.7-UP-sdwan-zone-policies",
       "section": "upgrade",
       "dedupe": "sn:policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade",
-      "introduced": {"7.4": "7.4.6", "7.6": "7.6.1"},
+      "introduced": {
+        "7.4": "7.4.6",
+        "7.6": "7.6.1"
+      },
       "title": "SD-WAN ゾーンのメンバーを使うポリシーが消える・空になる",
       "summary": "7.4.5 以前で、SD-WAN ゾーンに入っているインターフェースを local-in ポリシーで使っていると、7.4.6 以降へ上げたときに消えるか空になる。",
       "severity": "high",
-      "when": {"all": [
-        {"path": "system sdwan zone[*]"},
-        {"any": [
-          {"path": "firewall local-in-policy[*]"},
-          {"path": "firewall DoS-policy[*]"},
-          {"path": "firewall interface-policy[*]"},
-          {"path": "firewall multicast-policy[*]"},
-          {"path": "firewall ttl-policy[*]"},
-          {"path": "firewall central-snat-map[*]"}
-        ]}
-      ]},
+      "when": {
+        "all": [
+          {
+            "path": "system sdwan zone[*]"
+          },
+          {
+            "any": [
+              {
+                "path": "firewall local-in-policy[*]"
+              },
+              {
+                "path": "firewall DoS-policy[*]"
+              },
+              {
+                "path": "firewall interface-policy[*]"
+              },
+              {
+                "path": "firewall multicast-policy[*]"
+              },
+              {
+                "path": "firewall ttl-policy[*]"
+              },
+              {
+                "path": "firewall central-snat-map[*]"
+              }
+            ]
+          }
+        ]
+      },
       "judge": "ai",
-      "ai": {"question": "local-in-policy・DoS-policy・interface-policy・multicast-policy・ttl-policy・central-snat-map のどれかで、system sdwan members に入っているインターフェース（intf / srcintf / dstintf）を直接使っていますか？", "context": ["system sdwan", "firewall local-in-policy", "firewall DoS-policy", "firewall interface-policy", "firewall multicast-policy", "firewall ttl-policy", "firewall central-snat-map"]},
+      "ai": {
+        "question": "local-in-policy・DoS-policy・interface-policy・multicast-policy・ttl-policy・central-snat-map のどれかで、system sdwan members に入っているインターフェース（intf / srcintf / dstintf）を直接使っていますか？",
+        "context": [
+          "system sdwan",
+          "firewall local-in-policy",
+          "firewall DoS-policy",
+          "firewall interface-policy",
+          "firewall multicast-policy",
+          "firewall ttl-policy",
+          "firewall central-snat-map"
+        ]
+      },
       "impact": "これらのポリシーが消えるか、インターフェースが空になる。",
       "action": "上げたあと、消えたポリシーを作り直し、SD-WAN ゾーンを指定する。",
       "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/925230/policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade"
@@ -74,9 +159,20 @@
       "title": "ZTNA アクセスプロキシ経由の SMB ドライブが再起動後に使えない",
       "summary": "7.4.1 から、ZTNA アクセスプロキシの TCP フォワーディングを FQDN で設定していると、Windows PC の再起動後に SMB のドライブ割り当てが使えなくなる。IP で設定していれば起きない。",
       "severity": "low",
-      "when": {"path": "firewall access-proxy[*] api-gateway[*]", "key": "service", "op": "eq", "value": "tcp-forwarding"},
+      "when": {
+        "path": "firewall access-proxy[*] api-gateway[*]",
+        "key": "service",
+        "op": "eq",
+        "value": "tcp-forwarding"
+      },
       "judge": "ai",
-      "ai": {"question": "TCP フォワーディングのアクセスプロキシで、SMB（445）のサーバーを FQDN のアドレスで指定していますか？", "context": ["firewall access-proxy", "firewall address"]},
+      "ai": {
+        "question": "TCP フォワーディングのアクセスプロキシで、SMB（445）のサーバーを FQDN のアドレスで指定していますか？",
+        "context": [
+          "firewall access-proxy",
+          "firewall address"
+        ]
+      },
       "impact": "ZTNA 経由で割り当てた SMB のドライブに、PC の再起動後につながらない。",
       "action": "Windows の資格情報マネージャーに domain\\username の形で資格情報を入れるか、KDC プロキシで Kerberos のチケットを出す。",
       "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/832119/smb-drive-mapping-with-ztna-access-proxy"
@@ -89,12 +185,27 @@
       "title": "ECMP があると自機発の通信の出口が変わることがある",
       "summary": "7.4.1 から、ECMP のルートがあると、FortiGate 自身が出す通信（FortiGuard・ログ送信など）が別のポート・ルートを使うことがある。",
       "severity": "medium",
-      "when": {"any": [
-        {"path": "router static[*]"},
-        {"path": "system sdwan", "key": "status", "op": "eq", "value": "enable"}
-      ]},
+      "when": {
+        "any": [
+          {
+            "path": "router static[*]"
+          },
+          {
+            "path": "system sdwan",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
       "judge": "ai",
-      "ai": {"question": "同じ宛先へ、距離と優先度が同じルート（ECMP）が複数ありますか（SD-WAN のメンバーを含む）？", "context": ["router static", "system sdwan"]},
+      "ai": {
+        "question": "同じ宛先へ、距離と優先度が同じルート（ECMP）が複数ありますか（SD-WAN のメンバーを含む）？",
+        "context": [
+          "router static",
+          "system sdwan"
+        ]
+      },
       "impact": "送信元の IP が変わり、相手側で送信元を絞っている通信（ログ・認証・管理など）が失敗することがある。",
       "action": "送信元の IP が大事な自機発の通信は、interface-select-method specify と interface で出口を決める（例：system fortiguard）。",
       "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/421162/local-out-traffic-using-ecmp-routes-could-use-different-port-or-route-to-server"
@@ -106,7 +217,12 @@
       "title": "Hyperscale の PBA の IP プールでブロックが 1 つしか割り当てられない",
       "summary": "NP7 の制限で、Hyperscale のポリシーでポートブロック割り当て（overload PBA）の IP プールを使うと、クライアントごとに 1 ブロックしか割り当てない。cgn-resource-quota は無視される。ほかの制限は Hyperscale Firewall Guide の incompatibilities and limitations にある。",
       "severity": "medium",
-      "when": {"path": "firewall ippool[*]", "key": "type", "op": "eq", "value": "cgn-resource-allocation"},
+      "when": {
+        "path": "firewall ippool[*]",
+        "key": "type",
+        "op": "eq",
+        "value": "cgn-resource-allocation"
+      },
       "judge": "auto",
       "impact": "同じサーバーの IP・ポートに多くのセッションを張るクライアントで、ポートの割り当てに失敗することがある。",
       "action": "必要なら IP プールの cgn-block-size を大きくする。Hyperscale を使っているなら、Hyperscale Firewall Guide の制限の一覧も読む。",
@@ -119,7 +235,11 @@
       "title": "FortiGate 6000・7000 は専用の注意がある",
       "summary": "6000・7000 シリーズには専用のアップグレード情報と制限がある。グレースフルアップグレードには HA で uninterruptible-upgrade と session-pickup を有効にする。",
       "severity": "high",
-      "models": {"only": ["fg6000_7000"]},
+      "models": {
+        "only": [
+          "fg6000_7000"
+        ]
+      },
       "judge": "manual",
       "impact": "手順を誤ると通信断が起きる。単体や uninterruptible-upgrade 無効の HA では、上げる間しばらく通信が止まる。",
       "action": "リリースノートの「FortiGate 6000 and 7000 upgrade information」と「incompatibilities and limitations」を読む。",
@@ -132,7 +252,11 @@
       "title": "FortiGate VM は 4GB 以上のメモリを勧める",
       "summary": "VM はメモリの量で機能が減ることはないが、性能のため 4GB 以上のメモリを勧める。",
       "severity": "low",
-      "models": {"only": ["vm"]},
+      "models": {
+        "only": [
+          "vm"
+        ]
+      },
       "judge": "manual",
       "impact": "メモリが少ない VM では、上げたあと性能が落ちることがある。",
       "action": "VM に割り当てたメモリが 4GB 以上か確かめる。",
@@ -145,11 +269,28 @@
       "title": "FortiAnalyzer・FortiManager を先に上げる",
       "summary": "7.4.7 で確かめた組み合わせは FortiAnalyzer・FortiManager 7.4.6。上げる順は FortiAnalyzer → FortiManager → FortiGate → FortiExtender → FortiSwitch → FortiAP。Security Fabric では全部の FortiGate を同じ版にする。",
       "severity": "medium",
-      "when": {"any": [
-        {"path": "system central-management", "key": "type", "op": "eq", "value": "fortimanager"},
-        {"path": "log fortianalyzer setting", "key": "status", "op": "eq", "value": "enable"},
-        {"path": "system csf", "key": "status", "op": "eq", "value": "enable"}
-      ]},
+      "when": {
+        "any": [
+          {
+            "path": "system central-management",
+            "key": "type",
+            "op": "eq",
+            "value": "fortimanager"
+          },
+          {
+            "path": "log fortianalyzer setting",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "system csf",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
       "judge": "manual",
       "impact": "管理側（FortiAnalyzer・FortiManager）が古いと、管理・ログの取り込みがうまくいかないことがある。",
       "action": "FortiAnalyzer・FortiManager の版を確かめ、先に上げておく。Fabric の FortiGate はそろえて上げる。",
@@ -176,14 +317,421 @@
       "title": "VoIP プロファイルの feature-set が ips・voipd に変わる",
       "summary": "7.4.0 から VoIP プロファイルの feature-set の flow が ips に、proxy が voipd に名前が変わった。上げると ips のプロファイルはポリシーの ips-voip-filter へ移る。",
       "severity": "low",
-      "when": {"any": [
-        {"path": "voip profile[*]", "key": "feature-set", "op": "in", "value": ["flow", "proxy"]},
-        {"path": "firewall policy[*]", "key": "voip-profile", "op": "exists"}
-      ]},
+      "when": {
+        "any": [
+          {
+            "path": "voip profile[*]",
+            "key": "feature-set",
+            "op": "in",
+            "value": [
+              "flow",
+              "proxy"
+            ]
+          },
+          {
+            "path": "firewall policy[*]",
+            "key": "voip-profile",
+            "op": "exists"
+          }
+        ]
+      },
       "judge": "auto",
       "impact": "設定は自動で書き換わる。ポリシーで VoIP プロファイルを指定する項目が voip-profile と ips-voip-filter に分かれる。",
       "action": "上げたあと、VoIP（SIP）を通すポリシーの voip-profile・ips-voip-filter を確かめる。自動化のスクリプトがあれば新しい名前に直す。",
       "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/84861/ips-based-and-voipd-based-voip-profiles"
+    },
+    {
+      "id": "7.4.7-KI-945871",
+      "section": "known_issue",
+      "bug_id": "945871",
+      "title": "明示モードのソフトウェアスイッチで VIP（D-NAT）が効かない",
+      "summary": "intra-switch-policy explicit のソフトウェアスイッチを通る通信で、セッションの突き合わせを誤り、VIP の宛先変換が効かない。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "system switch-interface[*]",
+            "key": "intra-switch-policy",
+            "op": "eq",
+            "value": "explicit"
+          },
+          {
+            "path": "firewall vip[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "ソフトウェアスイッチ越しの VIP の通信が届かない。",
+      "action": "当てはまれば、この版にいる間、VIP の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1012577",
+      "section": "known_issue",
+      "bug_id": "1012577",
+      "title": "policy-offload-level dos-offload で WAN の通信が落ちる",
+      "summary": "system settings の policy-offload-level を dos-offload にしていると、WAN インターフェースの通信が落ちる。",
+      "severity": "high",
+      "when": {
+        "path": "system settings",
+        "key": "policy-offload-level",
+        "op": "eq",
+        "value": "dos-offload"
+      },
+      "judge": "auto",
+      "impact": "WAN の通信が止まる。",
+      "action": "当てはまれば、上げる前に policy-offload-level を見直すか、この版を避ける。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1085407",
+      "section": "known_issue",
+      "bug_id": "1085407",
+      "title": "default-qos-type shaping で応答しなくなる",
+      "summary": "system npu の default-qos-type を shaping にしていると、FortiGate が応答しなくなる。",
+      "severity": "high",
+      "when": {
+        "path": "system npu",
+        "key": "default-qos-type",
+        "op": "eq",
+        "value": "shaping"
+      },
+      "judge": "auto",
+      "impact": "機器が応答しなくなり、通信と管理が止まる。",
+      "action": "当てはまれば、上げる前に default-qos-type を policing にする（再起動が要る）。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1078662",
+      "section": "known_issue",
+      "bug_id": "1078662",
+      "title": "NP7 機でインターフェースの帯域の設定があると通信が止まる",
+      "summary": "NP7 機で、インターフェースに inbandwidth・outbandwidth・egress-shaping-profile があると、QTM が固まって通信が止まる・断片の checksum が誤る・MTU が守られない（901621・1091551 も同じ）。",
+      "severity": "high",
+      "when": {
+        "per_block": "system interface[*]",
+        "any": [
+          {
+            "key": "egress-shaping-profile",
+            "op": "regex",
+            "value": "[A-Za-z0-9]"
+          },
+          {
+            "key": "inbandwidth",
+            "op": "regex",
+            "value": "^[1-9]"
+          },
+          {
+            "key": "outbandwidth",
+            "op": "regex",
+            "value": "^[1-9]"
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "そのインターフェースの通信が止まることがある。",
+      "action": "NP7 機なら、上げる前に egress-shaping-profile を外すか、default-qos-type を policing にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1104410",
+      "section": "known_issue",
+      "bug_id": "1104410",
+      "title": "120G の SFP ポートを 1000full 固定にするとつながらない",
+      "summary": "FortiGate-120G の SFP ポートで speed 1000full にすると、オートネゴの扱いを誤ってリンクが上がらない。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FGT120G",
+          "FGT121G"
+        ]
+      },
+      "when": {
+        "path": "system interface[*]",
+        "key": "speed",
+        "op": "eq",
+        "value": "1000full"
+      },
+      "judge": "auto",
+      "impact": "その SFP ポートの通信が止まる。",
+      "action": "当てはまれば、上げる前に speed を見直すか、この版を避ける。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1116220",
+      "section": "known_issue",
+      "bug_id": "1116220",
+      "title": "3601E で DAC の 25G リンクが上がらない",
+      "summary": "FortiGate 3601E で、DAC ケーブルの 25G（25Gauto）のリンクが上がらない。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FG3601E"
+        ]
+      },
+      "judge": "manual",
+      "impact": "そのポートの通信が止まる。",
+      "action": "DAC を 25G で使っているなら、上げたあとリンクを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1164174",
+      "section": "known_issue",
+      "bug_id": "1164174",
+      "title": "60F でエクストリームコンサーブモードになると設定が消える",
+      "summary": "FGT-60F がエクストリームコンサーブモードに入ると、設定が失われることがある。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FGT60F",
+          "FWF60F"
+        ]
+      },
+      "judge": "manual",
+      "impact": "設定が消え、通信と管理が止まる。",
+      "action": "上げる前に設定を控え、この版にいる間はメモリの使用率を見る。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1170282",
+      "section": "known_issue",
+      "bug_id": "1170282",
+      "title": "ACME で証明書を取ると HA が同期しなくなる",
+      "summary": "ACME で証明書を取ったあと、HA の設定が同期しなくなる。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "system ha",
+            "key": "mode",
+            "op": "in",
+            "value": [
+              "a-p",
+              "a-a"
+            ]
+          },
+          {
+            "any": [
+              {
+                "path": "system acme",
+                "key": "interface",
+                "op": "exists"
+              },
+              {
+                "path": "vpn certificate local[*]",
+                "key": "enroll-protocol",
+                "op": "eq",
+                "value": "acme2"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "HA のメンバーの設定がずれ、フェイルオーバーで動きが変わる。",
+      "action": "上げたあと HA の同期の状態（diagnose sys ha checksum）を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-992323",
+      "section": "known_issue",
+      "bug_id": "992323",
+      "title": "9xG・12xG でトラフィックシェーピングを使うと通信が止まる",
+      "summary": "FortiGate 9xG・12xG で、トラフィックシェーピングを有効にすると通信が途切れる（1056133・1075607・1082413・1084898 も同じ）。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FGT90G",
+          "FGT91G",
+          "FGT120G",
+          "FGT121G"
+        ]
+      },
+      "when": {
+        "any": [
+          {
+            "path": "firewall shaping-policy[*]"
+          },
+          {
+            "path": "firewall policy[*]",
+            "key": "traffic-shaper",
+            "op": "exists"
+          },
+          {
+            "path": "firewall policy[*]",
+            "key": "traffic-shaper-reverse",
+            "op": "exists"
+          },
+          {
+            "path": "system interface[*]",
+            "key": "egress-shaping-profile",
+            "op": "regex",
+            "value": "[A-Za-z0-9]"
+          },
+          {
+            "path": "system interface[*]",
+            "key": "inbandwidth",
+            "op": "regex",
+            "value": "^[1-9]"
+          },
+          {
+            "path": "system interface[*]",
+            "key": "outbandwidth",
+            "op": "regex",
+            "value": "^[1-9]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "シェーピングをかけた通信が途切れる。",
+      "action": "当てはまれば、この版にいる時間を短くするか、上げる前にシェーピングを外す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1113436",
+      "section": "known_issue",
+      "bug_id": "1113436",
+      "title": "LACP の上の 802.1ad（QinQ）で通信が落ちる",
+      "summary": "LACP の上の 802.1ad の VLAN で auto-asic-offload を使うと、MAC アドレスが付かずパケットが落ちる。",
+      "severity": "medium",
+      "when": {
+        "path": "system interface[*]",
+        "key": "vlan-protocol",
+        "op": "eq",
+        "value": "8021ad"
+      },
+      "judge": "manual",
+      "impact": "QinQ の通信が止まる。",
+      "action": "当てはまれば、上げたあと QinQ の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1117005",
+      "section": "known_issue",
+      "bug_id": "1117005",
+      "title": "上げたあと IPsec の NPU オフロードで CPU が上がり管理しにくい",
+      "summary": "一部の機種で、IPsec の phase1 の npu-offload が有効のまま上げると、CPU が跳ね上がり管理のアクセスに問題が出る。",
+      "severity": "medium",
+      "models": {
+        "exclude": [
+          "vm"
+        ]
+      },
+      "when": {
+        "path": "vpn ipsec phase1-interface[*]"
+      },
+      "judge": "manual",
+      "impact": "上げたあと管理画面・SSH に入りにくくなる。",
+      "action": "IPsec を使っているなら、上げたあと CPU と管理のアクセスを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1117043",
+      "section": "known_issue",
+      "bug_id": "1117043",
+      "title": "上げたあと IPSA ドライバーの更新に失敗する",
+      "summary": "物理機で、IPS エンジンの版によっては、上げたあとイベントログに IPSA driver update failed が出る。再起動では直らず、電源を切り入れし直す必要がある。",
+      "severity": "medium",
+      "models": {
+        "exclude": [
+          "vm"
+        ]
+      },
+      "judge": "manual",
+      "impact": "IPS の処理を CP に任せられず、性能が落ちる。",
+      "action": "上げたあとイベントログを確かめ、出ていれば電源を切って 30 秒待ってから入れる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1140823",
+      "section": "known_issue",
+      "bug_id": "1140823",
+      "title": "NP6XLite のスポークで IPsec が止まる",
+      "summary": "NP6XLite の機器をスポークにすると、長く動かして鍵の更新を重ねたあと、トンネルが固まり ESP が落ちる。",
+      "severity": "medium",
+      "when": {
+        "path": "vpn ipsec phase1-interface[*]"
+      },
+      "judge": "manual",
+      "impact": "IPsec の通信が止まる。",
+      "action": "NP6XLite の機器（60F・100F など）でスポークなら、この版にいる間トンネルを見る。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1104649",
+      "section": "known_issue",
+      "bug_id": "1104649",
+      "title": "SD-WAN ゾーンのインターフェースの local-in-policy が消える",
+      "summary": "7.4.5 以前で SD-WAN ゾーンのメンバーのインターフェースを使った local-in-policy は、7.4.6・7.4.7 へ上げると消えるか中身が空になる。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "path": "firewall local-in-policy[*]"
+              },
+              {
+                "path": "firewall local-in-policy6[*]"
+              }
+            ]
+          },
+          {
+            "path": "system sdwan members[*]"
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "local-in-policy（local-in-policy6）の intf に、SD-WAN のメンバーのインターフェースを指定したものはありますか？",
+        "context": [
+          "firewall local-in-policy",
+          "firewall local-in-policy6",
+          "system sdwan"
+        ]
+      },
+      "impact": "管理や VPN を守る local-in-policy が無くなる。",
+      "action": "上げる前に local-in-policy を控え、上げたあと SD-WAN ゾーンに付けて作り直す。",
+      "introduced": "7.4.6",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1087263",
+      "section": "known_issue",
+      "bug_id": "1087263",
+      "title": "7.2 から上げると NP7 機の HA が再起動を繰り返す",
+      "summary": "NP7 機の FGCP HA を 7.2.8〜7.2.10 から 7.4.4〜7.4.7 へ上げると、クラスタが再起動を繰り返すことがある。",
+      "severity": "high",
+      "when": {
+        "path": "system ha",
+        "key": "mode",
+        "op": "in",
+        "value": [
+          "a-p",
+          "a-a"
+        ]
+      },
+      "judge": "manual",
+      "impact": "クラスタが起動せず、通信が止まる。",
+      "action": "NP7 機の HA なら、クラスタを外して 1 台ずつ上げるか、7.2.10 から 7.4.8 へ上げる。",
+      "introduced": "7.4.0",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.4.7-KI-1114550",
+      "section": "known_issue",
+      "bug_id": "1114550",
+      "title": "上げたあと FortiExtender がオフラインになる",
+      "summary": "7.4.5 から 7.4.6 へ上げると、FortiExtender がオフラインになる。",
+      "severity": "medium",
+      "when": {
+        "path": "extension-controller extender[*]"
+      },
+      "judge": "auto",
+      "impact": "FortiExtender 越しの回線が使えない。",
+      "action": "上げたあと FortiExtender を手で再起動する。",
+      "introduced": "7.4.6",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/236526/known-issues"
     }
   ]
 }

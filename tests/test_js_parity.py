@@ -15,10 +15,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from test_fwnav import CFG, VDOM_CFG  # noqa: E402
+from test_fwnav import CFG, MULTI_VDOM_CFG, VDOM_CFG, ZONE_CFG  # noqa: E402
 
 CORPUS = Path(os.environ.get("FWNAV_CORPUS", ROOT / "samples"))
-CASES = [("7.4.6", "7.6.8", "7.4.8,7.6.6"), ("", "7.6.8", ""), ("7.6.4", "7.6.8", ""), ("7.4.6", "7.6.6", "7.4.8")]
+CASES = [("7.4.6", "7.6.8", "7.4.8,7.6.6"), ("", "7.6.8", ""), ("7.6.4", "7.6.8", ""), ("7.4.6", "7.6.6", "7.4.8"),
+         ("7.4.7", "7.6.8", "7.6.4,7.6.6"), ("7.4.9", "7.6.8", "7.6.6")]
 
 
 @unittest.skipUnless(shutil.which("node"), "node が無い")
@@ -44,7 +45,7 @@ class Parity(unittest.TestCase):
 
     def test_inline_configs(self):
         with tempfile.TemporaryDirectory() as d:
-            for i, text in enumerate([CFG, VDOM_CFG]):
+            for i, text in enumerate([CFG, VDOM_CFG, ZONE_CFG, MULTI_VDOM_CFG]):
                 f = Path(d) / f"inline{i}.txt"
                 f.write_text(text, encoding="utf-8")
                 for frm, to, hops in CASES:

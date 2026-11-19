@@ -4,7 +4,7 @@
   "source": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes",
   "reviewed": false,
   "coverage": {
-    "known_issue": false
+    "known_issue": "upgrade"
   },
   "items": [
     {
@@ -18,10 +18,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -52,10 +61,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -658,6 +676,314 @@
       "impact": "スポーク間の通信の分かれ方（どのトンネルを通るか）が変わる。",
       "action": "ADVPN と load-balance のサービスを使っているなら、上げたあと通信の経路と帯域の使われ方を確かめる。",
       "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/743723/new-features-or-enhancements"
+    },
+    {
+      "id": "7.6.4-UB-1199169",
+      "section": "upgrade_bug",
+      "bug_id": "1199169",
+      "fixed_in": "7.6.5",
+      "present_from": "7.6.4",
+      "title": "7.6.4 へ上げると IPv6 のアドレスが取れない",
+      "summary": "7.6.4 へ上げると、IPv6 のアドレスの取得に問題が出る。7.6.5 で直った。",
+      "severity": "high",
+      "when": {
+        "any": [
+          {
+            "path": "system interface[*] ipv6",
+            "key": "ip6-mode",
+            "op": "in",
+            "value": [
+              "dhcp",
+              "pppoe"
+            ]
+          },
+          {
+            "path": "system interface[*] ipv6",
+            "key": "autoconf",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "system interface[*] ipv6",
+            "key": "dhcp6-prefix-delegation",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "DHCPv6・自動設定でアドレスを取る回線で IPv6 の通信が止まる。",
+      "action": "上げたあと IPv6 のアドレスと経路を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1160065",
+      "section": "upgrade_bug",
+      "bug_id": "1160065",
+      "fixed_in": "7.6.5",
+      "present_from": "7.6.0",
+      "title": "2GB 機で 7.4 から上げるとカスタムサービスの設定が変わる",
+      "summary": "2GB 機で 7.4 から 7.6.0〜7.6.4 へ上げると、firewall service custom の設定が変わってしまう。7.6.5 で直った。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "path": "firewall service custom[*]"
+      },
+      "judge": "auto",
+      "impact": "サービスの中身が変わり、ポリシーの許可・拒否が変わる。",
+      "action": "上げる前に設定を保存し、上げたあと firewall service custom を見比べる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1208846",
+      "section": "upgrade_bug",
+      "bug_id": "1208846",
+      "fixed_in": "7.6.5",
+      "title": "上げると FortiSwitch の RADIUS 認証が合わなくなる",
+      "summary": "上げると RADIUS の認証方式が合わなくなり、FortiSwitch のポートの認証に問題が出る。7.6.5 で直った。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "switch-controller managed-switch[*]"
+          },
+          {
+            "path": "user radius[*]"
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "FortiSwitch のポートで RADIUS 認証（802.1X・MAC 認証）を使っているか。",
+        "context": [
+          "switch-controller managed-switch",
+          "switch-controller security-policy",
+          "user radius"
+        ]
+      },
+      "impact": "FortiSwitch の 802.1X などで端末が認証されず、つながらない。",
+      "action": "上げたあと FortiSwitch のポートの認証を試す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1211319",
+      "section": "upgrade_bug",
+      "bug_id": "1211319",
+      "fixed_in": "7.6.5",
+      "title": "上げたあと URL フィルタの正規表現（フラグ付き）が効かない",
+      "summary": "上げたあと、Perl 式のフラグを使った URL フィルタの正規表現が正しく動かない。7.6.5 で直った。",
+      "severity": "medium",
+      "when": {
+        "path": "webfilter urlfilter[*] entries[*]",
+        "key": "type",
+        "op": "eq",
+        "value": "regex"
+      },
+      "judge": "auto",
+      "impact": "URL フィルタで止める・通すが意図と変わる。",
+      "action": "正規表現の URL フィルタを使っているなら、上げたあと動きを試す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1214424",
+      "section": "upgrade_bug",
+      "bug_id": "1214424",
+      "fixed_in": "7.6.5",
+      "title": "ログイン後のバナーを有効にすると上げたあと GUI に入れない",
+      "summary": "post-login-banner を有効にしていると、上げたあと GUI へのログインが失敗する。7.6.5 で直った。",
+      "severity": "medium",
+      "when": {
+        "path": "system global",
+        "key": "post-login-banner",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "GUI で管理できない（CLI は使える）。",
+      "action": "上げる前に CLI（SSH かコンソール）で入れることを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1220590",
+      "section": "upgrade_bug",
+      "bug_id": "1220590",
+      "fixed_in": "7.6.7",
+      "present_from": "7.6.4",
+      "title": "7.6.4 へ上げると FortiSwitch のつながりが時々切れる",
+      "summary": "7.6.4 へ上げると、FortiSwitch とのつながりが時々切れる。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "any": [
+          {
+            "path": "switch-controller managed-switch[*]"
+          },
+          {
+            "path": "system interface[*]",
+            "key": "fortilink",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "FortiSwitch の先の通信が止まったり、FortiSwitch を管理できなくなったりする。",
+      "action": "FortiLink を使っているなら、途中の版にいる時間を短くし、FortiSwitch の状態を見ながら進める。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-UB-1058256",
+      "section": "upgrade_bug",
+      "bug_id": "1058256",
+      "fixed_in": "7.6.5",
+      "title": "DAC ケーブルのポートが上げたあと落ちる",
+      "summary": "一部の機種で、DAC ケーブルを使うポートが上げたあと突然落ちる（Signal-OK の検出の誤り）。7.6.5 で直った。",
+      "severity": "medium",
+      "judge": "manual",
+      "impact": "そのポートのリンクが落ち、通信が止まる。",
+      "action": "DAC ケーブルを使っているなら、上げたあとリンクを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.4-KI-945871",
+      "section": "known_issue",
+      "bug_id": "945871",
+      "title": "明示モードのソフトウェアスイッチで VIP（D-NAT）が効かない",
+      "summary": "intra-switch-policy explicit のソフトウェアスイッチを通る通信で、セッションの突き合わせを誤り、VIP の宛先変換が効かない。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "system switch-interface[*]",
+            "key": "intra-switch-policy",
+            "op": "eq",
+            "value": "explicit"
+          },
+          {
+            "path": "firewall vip[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "ソフトウェアスイッチ越しの VIP の通信が届かない。",
+      "action": "当てはまれば、この版にいる間、VIP の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.4-KI-1209793",
+      "section": "known_issue",
+      "bug_id": "1209793",
+      "title": "FortiManager 管理下で電源断のあと、インターフェースの設定が消える",
+      "summary": "FortiManager で管理している FortiGate が、電源の切断や予期しない停止のあと再起動すると、インターフェースの設定が失われる。",
+      "severity": "high",
+      "when": {
+        "path": "system central-management",
+        "key": "type",
+        "op": "eq",
+        "value": "fortimanager"
+      },
+      "judge": "auto",
+      "impact": "インターフェースの設定が消え、通信と管理が止まる。",
+      "action": "上げる前に設定を控え、この版にいる間は電源を落とさない。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.4-KI-1224835",
+      "section": "known_issue",
+      "bug_id": "1224835",
+      "title": "EMAC VLAN があると HA のフェイルオーバーで通信が落ちる",
+      "summary": "EMAC VLAN を使っていると、HA のフェイルオーバーのときに通信が落ちる。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "system ha",
+            "key": "mode",
+            "op": "in",
+            "value": [
+              "a-p",
+              "a-a"
+            ]
+          },
+          {
+            "path": "system interface[*]",
+            "key": "type",
+            "op": "eq",
+            "value": "emac-vlan"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "HA で順に上げるときのフェイルオーバーで、EMAC VLAN の通信が止まる。",
+      "action": "当てはまれば、メンテナンスの時間に上げ、フェイルオーバーのあと EMAC VLAN の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.4-KI-1076213",
+      "section": "known_issue",
+      "bug_id": "1076213",
+      "title": "メモリ 4GB の機器で FortiGuard の更新のときにコンサーブモードになる",
+      "summary": "メモリ 4GB の機器で IPS かアプリケーションコントロールを使っていると、FortiGuard の更新のときにコンサーブモードに入ることがある。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "ips-sensor",
+                "op": "exists"
+              },
+              {
+                "path": "firewall policy[*]",
+                "key": "application-list",
+                "op": "exists"
+              }
+            ]
+          },
+          {
+            "not": {
+              "path": "ips settings",
+              "key": "proxy-inline-ips",
+              "op": "eq",
+              "value": "disable"
+            }
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "コンサーブモードの間、検査や新しいセッションに影響が出る。",
+      "action": "メモリ 4GB の機器なら、ips settings の proxy-inline-ips を disable にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.4-KI-1164175",
+      "section": "known_issue",
+      "bug_id": "1164175",
+      "title": "相手の DH グループの順番によって IKEv2 がつながらない",
+      "summary": "相手が IKE_SA_INIT で、こちらの思う順番でない DH グループを出すと、INVALID_KE で DH グループが合わない。",
+      "severity": "medium",
+      "when": {
+        "per_block": "vpn ipsec phase1-interface[*]",
+        "any": [
+          {
+            "key": "ike-version",
+            "op": "eq",
+            "value": "2"
+          },
+          {
+            "key": "ike-version",
+            "op": "unset"
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "IPsec のトンネルが上がらないことがある。",
+      "action": "phase1 の DH グループを一つにするか、相手と順番をそろえる。上げたあとトンネルを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/fortios-release-notes/236526/known-issues"
     }
   ]
 }

@@ -62,6 +62,55 @@ end
 """
 
 
+# ssl.root をゾーンに入れ、ポリシーはゾーンを使う（Fortinet の構成例の形）
+ZONE_CFG = """#config-version=FGT90G-7.4.7-FW-build2731-250101:opmode=1:vdom=0:user=admin
+config system zone
+    edit "VPN-ZONE"
+        set interface "ssl.root" "wan2"
+    next
+end
+config vpn ssl web portal
+    edit "full-access"
+        set tunnel-mode enable
+    next
+end
+config firewall policy
+    edit 3
+        set srcintf "VPN-ZONE"
+        set dstintf "internal1"
+    next
+end
+"""
+
+# 同じ名前の SSL/SSH プロファイルが 2 つの VDOM にあり、片方だけ udp-not-quic を明示している
+MULTI_VDOM_CFG = """config global
+config system global
+    set hostname "mv"
+end
+end
+config vdom
+edit A
+config firewall ssl-ssh-profile
+    edit "deep"
+        config https
+            set udp-not-quic allow
+        end
+    next
+end
+next
+edit B
+config firewall ssl-ssh-profile
+    edit "deep"
+        config https
+            set ports 443
+        end
+    next
+end
+next
+end
+"""
+
+
 class Flatten(unittest.TestCase):
     def setUp(self):
         self.cfg = fwnav.Config(CFG)
@@ -117,6 +166,42 @@ class Conditions(unittest.TestCase):
             {"key": "fortilink", "op": "eq", "value": "enable"},
             {"key": "lldp-reception", "op": "unset"}]}
         self.assertTrue(self.ok(c2))
+
+
+class CodexFindings(unittest.TestCase):
+    def test_ssl_root_in_zone(self):
+        cfg = fwnav.Config(ZONE_CFG)
+        ok, ev = fwnav.eval_cond(cfg, {"path": "firewall policy[*]", "key": "srcintf", "op": "intf_regex", "value": "^ssl\\."})
+        self.assertTrue(ok)
+        self.assertIn("system zone[VPN-ZONE]", [e[1] for e in ev])
+        # 直接書いた ssl.root も当たる
+        cfg2 = fwnav.Config(CFG)
+        self.assertTrue(fwnav.eval_cond(cfg2, {"path": "firewall policy[*]", "key": "srcintf", "op": "intf_regex", "value": "^ssl\\."})[0])
+
+    def test_kb_ssl_tunnel_item_hits_zone_config(self):
+        kb, groups = fwnav.load_kb()
+        _, items = fwnav.select_items(kb, "7.4.7", "7.6.8", ["7.6.4", "7.6.6"])
+        res = {r["item"]["dedupe"]: r["result"] for r in fwnav.judge(fwnav.Config(ZONE_CFG), items, "FGT90G", groups) if r["item"].get("dedupe")}
+        self.assertEqual(res["sn:ssl-vpn-tunnel-mode-replaced-with-ipsec-vpn"], "該当")
+
+    def test_unset_is_per_vdom(self):
+        cfg = fwnav.Config(MULTI_VDOM_CFG)
+        ok, ev = fwnav.eval_cond(cfg, {"path": "firewall ssl-ssh-profile[*] https", "key": "udp-not-quic", "op": "unset"})
+        self.assertTrue(ok)
+        self.assertEqual([(e[0], e[1]) for e in ev], [("B", "firewall ssl-ssh-profile[deep] https")])
+
+    def test_per_block_is_per_vdom(self):
+        cfg = fwnav.Config(MULTI_VDOM_CFG)
+        c = {"per_block": "firewall ssl-ssh-profile[*] https", "all": [{"key": "udp-not-quic", "op": "unset"}]}
+        ok, ev = fwnav.eval_cond(cfg, c)
+        self.assertTrue(ok)
+        self.assertEqual([e[0] for e in ev], ["B"])
+
+    def test_upgrade_bug_selection(self):
+        it = {"fixed_in": "7.6.7"}
+        self.assertEqual(fwnav.upgrade_bug_hits(it, ["7.6.4", "7.6.6", "7.6.8"]), ["7.6.4", "7.6.6"])
+        self.assertEqual(fwnav.upgrade_bug_hits(dict(it, present_from="7.6.5"), ["7.6.4", "7.6.6"]), ["7.6.6"])
+        self.assertEqual(fwnav.upgrade_bug_hits({"fixed_in": "7.4.10"}, ["7.4.8", "7.6.6"]), ["7.4.8"])
 
 
 class Versions(unittest.TestCase):

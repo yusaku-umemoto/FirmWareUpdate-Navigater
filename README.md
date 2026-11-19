@@ -31,7 +31,7 @@ python3 tools/build_html.py
 python3 fwnav.py check running-config.txt --from 7.4.6 --to 7.6.8 --path 7.4.8,7.6.6
 ```
 
-- `--path` は Fortinet の [Upgrade Path Tool](https://docs.fortinet.com/upgrade-tool/fortigate) が出す途中の版（機種で変わる）。渡さないと、上げる前の枝の版を全部見る（多めに出る）
+- `--path` は Fortinet の [Upgrade Path Tool](https://docs.fortinet.com/upgrade-tool/fortigate) が出す途中の版（機種と今の版で変わる）。**必ず入れる**。渡さないと、上げる前の枝の版を全部見る（多めに出る）うえ、途中の版の不具合を見ない
 - `--from`・`--model` は config の先頭（`#config-version=FGT60F-7.4.6-…`）から読む。無ければ渡す
 - config は `show`（`show full-configuration` でなくてよい）。既定値が変わった項目は「設定が書かれていない＝既定値で動いている」として判定する
 
@@ -54,7 +54,8 @@ python3 fwnav.py flatten running-config.txt                          # 平らに
 
 - 上げる前の枝（7.4）：`from` より後で、その枝で最後に通る版まで（例 7.4.7・7.4.8）
 - 上げた先の枝（7.6）：7.6.0 から `to` まで
-- Known issues は**上げた先の版のものだけ**（途中の版の既知の問題は、その版で運用しないので見ない）
+- Known issues は**入れる版（途中の版と上げた先）**。途中の版は上げる作業に関わるものだけ
+- 途中の版の不具合（後の版の Resolved issues に載ったもの）は、途中の版がその不具合の範囲（`present_from` ≤ 版 < `fixed_in`）に入れば出る
 - Special Notices は後の版にも繰り返し載るので一つにまとめ、`introduced`（始まった版）を上げる前の版が過ぎていれば出さない
 
 ## 構成
@@ -85,22 +86,37 @@ tests/                       python3 -m unittest discover tests（Node があれ
 
 | 版 | 項目 | Known issues | 人の確認 |
 |---|---|---|---|
-| 7.4.7・7.4.8 | 11・21 | 入れていない | まだ |
-| 7.6.0〜7.6.7 | 15〜30 | 入れていない | まだ |
-| 7.6.8 | 40 | 入れた | まだ |
+| 7.4.7・7.4.8 | 27・45 | 上げる作業に関わるものだけ（途中の版として） | まだ |
+| 7.6.0〜7.6.3・7.6.5・7.6.7 | 15〜32 | 入れていない | まだ |
+| 7.6.4・7.6.6 | 36・41 | 上げる作業に関わるものだけ（途中の版として） | まだ |
+| 7.6.8 | 41 | 全部見た | まだ |
 
-7.4.6 → 7.6.8（パス 7.4.8・7.6.6）では 100 項目が対象になる。項目は AI（Claude）がリリースノートから書いたもので、条件のいくつかは CLI の名前を実機で確かめていない（`system npu` のキーなど）。
+項目は AI（Claude）がリリースノートから書いたもので、条件のいくつかは CLI の名前を実機で確かめていない（`system npu` のキーなど）。
+
+### 何を見ているか
+
+- **通る版の変更**：Special Notices・Upgrade information・Changes in（CLI・既定の動き・既定値・上限）・New features のうち既存の設定に効くもの
+- **入れる版の Known issues**：上げた先の版は全部。途中の版（Upgrade Path Tool の途中の版）は、上げる作業に関わるもの（設定の消失・通信断・管理断・次へ上げられない など）
+- **途中の版の不具合**：途中の版にあって、後の版の Resolved issues に載ったもの（「7.6.6 へ上げるとパッシブ FTP が通らない（7.6.7 で修正）」など）。途中の版を入れないと見ない
 
 ### 網羅状況（入れなかった項目と理由）
 
-7.4.6 → 7.6.8 の範囲のリリースノートの項目（Special Notices などの注意のページ・Changes in の表・New features・7.6.8 の Known issues）は、重複を除いて 525 件。**全件に「知識ベースに入れた」か「入れなかった理由」が付いている**（入れた 112・入れなかった 413）。入れなかった理由は `kb/fortios/excluded/` にある（Bug ID かページ番号と、日本語の理由）。
+対象の原文の項目には、**全件に「知識ベースに入れた」か「入れなかった理由」が付いている**（理由は `kb/fortios/excluded/`。Bug ID かページ番号と日本語の理由）。
+
+| 経路（Upgrade Path Tool） | 原文の項目（重複なし） | 入れた | 入れなかった | 判定の対象 |
+|---|---|---|---|---|
+| 90G・120G：7.4.7 → 7.6.4 → 7.6.6 → 7.6.8 | 640 | 147 | 493 | 137 |
+| 101F：7.4.9 → 7.6.6 → 7.6.8 | 610 | 137 | 473 | 126 |
+| 60F：7.4.6 → 7.4.8 → 7.6.6 → 7.6.8 | 744 | 166 | 578 | 153 |
+
+原文の項目は、通る版の Special Notices などの注意のページ・Changes in の表・New features、入れる版の Known issues、途中の版より後の Resolved issues のうちアップグレードに触れる行。Resolved issues のそれ以外の行（数千件）は見ていない。
 
 ```bash
-python3 tools/fetch_release_notes.py 7.4.7 7.4.8 7.6.0 7.6.1 7.6.2 7.6.3 7.6.4 7.6.5 7.6.6 7.6.7 7.6.8
-python3 tools/coverage.py --from 7.4.6 --to 7.6.8 --path 7.4.8,7.6.6
+python3 tools/fetch_release_notes.py 7.4.7 7.4.8 7.4.9 7.4.10 7.4.11 7.6.0 7.6.1 7.6.2 7.6.3 7.6.4 7.6.5 7.6.6 7.6.7 7.6.8
+python3 tools/coverage.py --from 7.4.7 --to 7.6.8 --path 7.6.4,7.6.6
 ```
 
-で、原文の書き出しつきの一覧（`out/coverage/`。Markdown と CSV）ができる。ほかのツールや AI が出した確認項目と突き合わせるときに使う。Special Notices は同じものが版ごとに繰り返し載る（延べ 133 件）ので、版ごとに数えると件数が大きく膨らむ。
+で、原文の書き出しつきの一覧（`out/coverage/`。Markdown と CSV）ができる。ほかのツールや AI が出した確認項目と突き合わせるときに使う。Special Notices は同じものが版ごとに繰り返し載るので、版ごとに数えると件数が大きく膨らむ。
 
 ## 社内 AI に渡す
 

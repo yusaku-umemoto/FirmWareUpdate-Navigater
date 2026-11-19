@@ -18,10 +18,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -52,10 +61,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -791,6 +809,30 @@
       "impact": "インターフェースの inbandwidth・outbandwidth が速度テストのたびに変わり、シェーピングや SD-WAN の帯域の判断が変わる。",
       "action": "速度テストの予定を使っているなら、上げたあとインターフェースの帯域の値とシェーピングの結果を確かめる。",
       "url": "https://docs.fortinet.com/document/fortigate/7.6.5/fortios-release-notes/743723/new-features-or-enhancements"
+    },
+    {
+      "id": "7.6.5-UB-1251244",
+      "section": "upgrade_bug",
+      "bug_id": "1251244",
+      "fixed_in": "7.6.7",
+      "present_from": "7.6.5",
+      "title": "7.6.5 へ上げると OSPFv3 のネイバーが張れない",
+      "summary": "7.6.5 へ上げると、OSPFv3（IPv6 の OSPF）のネイバーが張れない。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "any": [
+          {
+            "path": "router ospf6 area[*]"
+          },
+          {
+            "path": "router ospf6 ospf6-interface[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "OSPFv3 の経路が消え、IPv6 の通信が止まる。",
+      "action": "上げたあと OSPFv3 のネイバーと経路を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
     }
   ]
 }

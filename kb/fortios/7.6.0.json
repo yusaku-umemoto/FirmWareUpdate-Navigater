@@ -21,10 +21,19 @@
         ]
       },
       "when": {
-        "path": "firewall policy[*]",
-        "key": "srcintf",
-        "op": "regex",
-        "value": "(^|\\s|\")ssl\\."
+        "any": [
+          {
+            "path": "firewall policy[*]",
+            "key": "srcintf",
+            "op": "intf_regex",
+            "value": "^ssl\\."
+          },
+          {
+            "path": "vpn ssl settings",
+            "key": "source-interface",
+            "op": "exists"
+          }
+        ]
       },
       "judge": "auto",
       "impact": "アップグレード後、SSL VPN のリモートアクセス（FortiClient のトンネル・ブラウザの Web モード）がつながらなくなる。",

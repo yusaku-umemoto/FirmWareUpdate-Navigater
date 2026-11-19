@@ -4,7 +4,7 @@
   "source": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes",
   "reviewed": false,
   "coverage": {
-    "known_issue": false
+    "known_issue": "upgrade"
   },
   "items": [
     {
@@ -18,10 +18,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -52,10 +61,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -471,6 +489,654 @@
       "impact": "手順を誤ると通信断が起きる。",
       "action": "リリースノートの「FortiGate 6000 and 7000 upgrade information」と「incompatibilities and limitations」を読む。",
       "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/725026/fortigate-6000-and-7000-upgrade-information"
+    },
+    {
+      "id": "7.6.6-UB-1281193",
+      "section": "upgrade_bug",
+      "bug_id": "1281193",
+      "fixed_in": "7.6.7",
+      "title": "NAT しない構成で FTP のパッシブモードが通らない",
+      "summary": "FortiGate が NAT しない構成で、7.4.9 から 7.6.6 へ上げると FTP のパッシブモードが失敗する。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "per_block": "firewall policy[*]",
+        "all": [
+          {
+            "key": "action",
+            "op": "eq",
+            "value": "accept"
+          },
+          {
+            "key": "service",
+            "op": "in",
+            "value": [
+              "FTP",
+              "FTP_GET",
+              "FTP_PUT",
+              "ALL",
+              "ALL_TCP"
+            ]
+          },
+          {
+            "any": [
+              {
+                "key": "nat",
+                "op": "unset"
+              },
+              {
+                "key": "nat",
+                "op": "eq",
+                "value": "disable"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "NAT なしのポリシーを通る FTP（パッシブ）のデータ転送が止まる。",
+      "action": "FTP を NAT なしで通しているなら、7.6.6 にいる時間を短くし、上げたあと FTP を試す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1252751",
+      "section": "upgrade_bug",
+      "bug_id": "1252751",
+      "fixed_in": "7.6.7",
+      "title": "暗号を指定したバーチャルサーバーが上げると消える",
+      "summary": "SSL の暗号（ssl-cipher-suites）を指定したバーチャルサーバーが、上げる途中で消える。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "any": [
+          {
+            "any": [
+              {
+                "path": "firewall vip[*] ssl-cipher-suites[*]"
+              },
+              {
+                "path": "firewall vip6[*] ssl-cipher-suites[*]"
+              },
+              {
+                "path": "firewall vip[*]",
+                "key": "ssl-algorithm",
+                "op": "eq",
+                "value": "custom"
+              },
+              {
+                "path": "firewall vip6[*]",
+                "key": "ssl-algorithm",
+                "op": "eq",
+                "value": "custom"
+              }
+            ]
+          },
+          {
+            "path": "firewall access-proxy*[*] api-gateway*[*] ssl-cipher-suites[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "バーチャルサーバー（負荷分散）が無くなり、その先のサーバーへの通信が止まる。",
+      "action": "上げる前に ssl-cipher-suites の各行で versions をはっきり設定しておく。設定を保存し、上げたあと残っているか確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1240208",
+      "section": "upgrade_bug",
+      "bug_id": "1240208",
+      "fixed_in": "7.6.7",
+      "title": "上げたあと明示プロキシで 504 が時々出る",
+      "summary": "上げたあと、ワイルドカード FQDN が一部の名前を解決できず、明示プロキシで 504 Gateway Timeout が時々出る。7.6.7 で直った。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "web-proxy explicit",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "any": [
+              {
+                "path": "firewall wildcard-fqdn custom[*]"
+              },
+              {
+                "path": "firewall address[*]",
+                "key": "type",
+                "op": "eq",
+                "value": "wildcard-fqdn"
+              },
+              {
+                "path": "firewall address[*]",
+                "key": "fqdn",
+                "op": "regex",
+                "value": "\\*"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "明示プロキシ経由の Web アクセスが時々失敗する。",
+      "action": "起きたら system dns の fqdn-max-refresh を大きくする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1283092",
+      "section": "upgrade_bug",
+      "bug_id": "1283092",
+      "fixed_in": "7.6.7",
+      "title": "Private Data Encryption を有効にすると上げられない",
+      "summary": "private-data-encryption を有効にしていると、アップグレードが失敗する。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "path": "system global",
+        "key": "private-data-encryption",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "次の版へ上げられず、作業が止まる。",
+      "action": "上げる前に、この設定を使っているか確かめる。失敗したら Fortinet の手順に従い、無理に繰り返さない。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1292490",
+      "section": "upgrade_bug",
+      "bug_id": "1292490",
+      "fixed_in": "7.6.7",
+      "title": "VRF を付けた HA ハートビートで上げると HA の設定が消える",
+      "summary": "HA のハートビートのインターフェースに VRF 1 を付けていると、7.4.11 から 7.6.6 へ上げたとき HA の設定が消える。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "system ha",
+            "key": "hbdev",
+            "op": "exists"
+          },
+          {
+            "path": "system interface[*]",
+            "key": "vrf",
+            "op": "regex",
+            "value": "^[1-9]"
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "HA のハートビートのインターフェース（hbdev）に 0 以外の VRF が付いているか。",
+        "context": [
+          "system ha",
+          "system interface"
+        ]
+      },
+      "impact": "HA が組めなくなり、両方が主機になるなどして通信が止まる。",
+      "action": "上げる前に HA の設定を保存する。ハートビートのインターフェースの VRF を 0 に戻してから上げるか、上げたあと HA の設定を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1155333",
+      "section": "upgrade_bug",
+      "bug_id": "1155333",
+      "fixed_in": "7.6.7",
+      "title": "30G 系でメモリが多いと上げられない",
+      "summary": "30G 系（FGT/FWF-3xG）でメモリの使用率が高いと、アップグレードが inflate failed のエラーで失敗する。7.6.7 で直った。",
+      "severity": "medium",
+      "models": {
+        "only": [
+          "FGT30G",
+          "FWF30G",
+          "FGT31G",
+          "FWF31G"
+        ]
+      },
+      "judge": "manual",
+      "impact": "次の版へ上げられない。",
+      "action": "上げる前にメモリの使用率を確かめ、高ければ再起動してから上げる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1216459",
+      "section": "upgrade_bug",
+      "bug_id": "1216459",
+      "fixed_in": "7.6.7",
+      "title": "BIOS のセキュリティが High だと HA のアップグレードが失敗する",
+      "summary": "BIOS のセキュリティのレベルが High のとき、HA でのイメージのアップグレードで検証が失敗する。7.6.7 で直った。",
+      "severity": "medium",
+      "when": {
+        "path": "system ha",
+        "key": "mode",
+        "op": "in",
+        "value": [
+          "a-p",
+          "a-a"
+        ]
+      },
+      "judge": "manual",
+      "impact": "クラスタを次の版へ上げられない。",
+      "action": "HA の機器で BIOS のセキュリティのレベルを確かめる（get system status など）。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1235313",
+      "section": "upgrade_bug",
+      "bug_id": "1235313",
+      "fixed_in": "7.6.7",
+      "title": "ポリシーが多い HA で上げる途中のフェイルオーバーで通信が止まる",
+      "summary": "多数のファイアウォールポリシーがあるクラスタで、上げる途中のフェイルオーバーのあとポリシーを入れ直す間、通信が止まる。7.6.7 で直った。",
+      "severity": "high",
+      "when": {
+        "path": "system ha",
+        "key": "mode",
+        "op": "in",
+        "value": [
+          "a-p",
+          "a-a"
+        ]
+      },
+      "judge": "manual",
+      "impact": "上げる途中で通信が止まる。",
+      "action": "ポリシーが多い（数千件など）クラスタなら、止めてよい時間に作業する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1171499",
+      "section": "upgrade_bug",
+      "bug_id": "1171499",
+      "fixed_in": "7.6.7",
+      "title": "上げたあと SSL インスペクションで証明書チェーンが送られない",
+      "summary": "上げたあと、SSL インスペクションで証明書チェーン（中間 CA）が送られない。7.6.7 で直った。",
+      "severity": "medium",
+      "when": {
+        "per_block": "firewall policy[*]",
+        "all": [
+          {
+            "key": "ssl-ssh-profile",
+            "op": "exists"
+          },
+          {
+            "not": {
+              "key": "ssl-ssh-profile",
+              "op": "in",
+              "value": [
+                "no-inspection",
+                "certificate-inspection"
+              ]
+            }
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "SSL インスペクション（ディープインスペクション）で下位 CA（中間 CA）の証明書を使って再署名しているか。",
+        "context": [
+          "firewall ssl-ssh-profile",
+          "vpn certificate local"
+        ]
+      },
+      "impact": "利用者のブラウザやアプリで証明書エラーが出て、HTTPS がつながらない。",
+      "action": "下位 CA で再署名しているなら、上げたあと HTTPS のアクセスを試す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1228793",
+      "section": "upgrade_bug",
+      "bug_id": "1228793",
+      "fixed_in": "7.6.7",
+      "title": "上げたあと CMPv2 の証明書の自動登録が失敗する",
+      "summary": "上げたあと、中間 CA を使う CMPv2 の証明書の自動登録が失敗する。7.6.7 で直った。",
+      "severity": "medium",
+      "when": {
+        "path": "vpn certificate local[*]",
+        "key": "enroll-protocol",
+        "op": "eq",
+        "value": "cmpv2"
+      },
+      "judge": "auto",
+      "impact": "証明書が更新されず、期限切れで VPN などが止まるおそれがある。",
+      "action": "上げたあと証明書の更新が動くか確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-UB-1083626",
+      "section": "upgrade_bug",
+      "bug_id": "1083626",
+      "fixed_in": "7.6.7",
+      "title": "90G/91G の共用 SFP ポートで自動ネゴシエーションが使えない",
+      "summary": "90G・91G の共用 SFP ポートで自動ネゴシエーションが使えない。7.4.10・7.6.7 で使えるようになった。7.4.10 以降から 7.6.4・7.6.6 を通ると、途中で使えなくなる。",
+      "severity": "medium",
+      "models": {
+        "only": [
+          "FGT90G",
+          "FGT91G"
+        ]
+      },
+      "judge": "manual",
+      "impact": "相手が自動ネゴシエーションを求めると、共用 SFP ポートのリンクが上がらないことがある。",
+      "action": "共用 SFP ポートを使っているなら、途中の版でリンクを確かめる。上がらなければ相手側の速度を固定にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/289806/resolved-issues"
+    },
+    {
+      "id": "7.6.6-KI-1254463",
+      "section": "known_issue",
+      "bug_id": "1254463",
+      "title": "ワイルドカード FQDN のアドレスで通信が落ちる",
+      "summary": "ワイルドカード FQDN のアドレスで、パッシブな学習で名前を解決できない形の FQDN があると、通信が落ちる。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "firewall address[*]",
+            "key": "fqdn",
+            "op": "regex",
+            "value": "^\"?\\*"
+          },
+          {
+            "path": "firewall wildcard-fqdn custom[*]"
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "ワイルドカード FQDN（*.example.com など）のアドレスを、firewall policy で使っていますか？",
+        "context": [
+          "firewall address",
+          "firewall addrgrp",
+          "firewall policy"
+        ]
+      },
+      "impact": "ワイルドカード FQDN を使うポリシーの通信が止まることがある。",
+      "action": "アドレスに元のドメイン（apex）も入れ、同じ名前のワイルドカードの指定を避ける。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1259241",
+      "section": "known_issue",
+      "bug_id": "1259241",
+      "title": "EMAC VLAN で宛先 MAC を誤って送る",
+      "summary": "VLAN ID を持つ EMAC インターフェースで、宛先の MAC アドレスを誤ってパケットを送る。",
+      "severity": "medium",
+      "when": {
+        "path": "system interface[*]",
+        "key": "type",
+        "op": "eq",
+        "value": "emac-vlan"
+      },
+      "judge": "auto",
+      "impact": "EMAC VLAN の通信が届かないことがある。",
+      "action": "当てはまれば、上げたあと EMAC VLAN の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1250511",
+      "section": "known_issue",
+      "bug_id": "1250511",
+      "title": "FGSP で L2 のバウンスが起きる",
+      "summary": "FGSP で相手の dev_base が無いと、思わぬ L2 のバウンスが起きる。",
+      "severity": "medium",
+      "when": {
+        "path": "system standalone-cluster",
+        "key": "layer2-connection",
+        "op": "eq",
+        "value": "available"
+      },
+      "judge": "auto",
+      "impact": "通信がループしたり途切れたりする。",
+      "action": "standalone-cluster の layer2-connection を unavailable にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1215724",
+      "section": "known_issue",
+      "bug_id": "1215724",
+      "title": "FIPS-CC モードで DH グループ 31・32 の IPsec がつながらない",
+      "summary": "FIPS-CC モードで DH グループ 31 か 32 を使うと、IPsec のトンネルが上がらない。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "path": "system fips-cc",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "any": [
+              {
+                "path": "vpn ipsec phase1-interface[*]",
+                "key": "dhgrp",
+                "op": "regex",
+                "value": "\\b3[12]\\b"
+              },
+              {
+                "path": "vpn ipsec phase2-interface[*]",
+                "key": "dhgrp",
+                "op": "regex",
+                "value": "\\b3[12]\\b"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "IPsec の通信が止まる。",
+      "action": "当てはまれば、上げる前に別の DH グループにする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1209793",
+      "section": "known_issue",
+      "bug_id": "1209793",
+      "title": "FortiManager 管理下で電源断のあと、インターフェースの設定が消える",
+      "summary": "FortiManager で管理している FortiGate が、電源の切断や予期しない停止のあと再起動すると、インターフェースの設定が失われる。",
+      "severity": "high",
+      "when": {
+        "path": "system central-management",
+        "key": "type",
+        "op": "eq",
+        "value": "fortimanager"
+      },
+      "judge": "auto",
+      "impact": "インターフェースの設定が消え、通信と管理が止まる。",
+      "action": "上げる前に設定を控え、この版にいる間は電源を落とさない。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1224835",
+      "section": "known_issue",
+      "bug_id": "1224835",
+      "title": "EMAC VLAN があると HA のフェイルオーバーで通信が落ちる",
+      "summary": "EMAC VLAN を使っていると、HA のフェイルオーバーのときに通信が落ちる。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "system ha",
+            "key": "mode",
+            "op": "in",
+            "value": [
+              "a-p",
+              "a-a"
+            ]
+          },
+          {
+            "path": "system interface[*]",
+            "key": "type",
+            "op": "eq",
+            "value": "emac-vlan"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "HA で順に上げるときのフェイルオーバーで、EMAC VLAN の通信が止まる。",
+      "action": "当てはまれば、メンテナンスの時間に上げ、フェイルオーバーのあと EMAC VLAN の通信を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1076213",
+      "section": "known_issue",
+      "bug_id": "1076213",
+      "title": "メモリ 4GB の機器で FortiGuard の更新のときにコンサーブモードになる",
+      "summary": "メモリ 4GB の機器で IPS かアプリケーションコントロールを使っていると、FortiGuard の更新のときにコンサーブモードに入ることがある。",
+      "severity": "medium",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "ips-sensor",
+                "op": "exists"
+              },
+              {
+                "path": "firewall policy[*]",
+                "key": "application-list",
+                "op": "exists"
+              }
+            ]
+          },
+          {
+            "not": {
+              "path": "ips settings",
+              "key": "proxy-inline-ips",
+              "op": "eq",
+              "value": "disable"
+            }
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "コンサーブモードの間、検査や新しいセッションに影響が出る。",
+      "action": "メモリ 4GB の機器なら、ips settings の proxy-inline-ips を disable にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1164175",
+      "section": "known_issue",
+      "bug_id": "1164175",
+      "title": "相手の DH グループの順番によって IKEv2 がつながらない",
+      "summary": "相手が IKE_SA_INIT で、こちらの思う順番でない DH グループを出すと、INVALID_KE で DH グループが合わない。",
+      "severity": "medium",
+      "when": {
+        "per_block": "vpn ipsec phase1-interface[*]",
+        "any": [
+          {
+            "key": "ike-version",
+            "op": "eq",
+            "value": "2"
+          },
+          {
+            "key": "ike-version",
+            "op": "unset"
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "IPsec のトンネルが上がらないことがある。",
+      "action": "phase1 の DH グループを一つにするか、相手と順番をそろえる。上げたあとトンネルを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1260236",
+      "section": "known_issue",
+      "bug_id": "1260236",
+      "title": "70G の HA（A-P）で無線の通信があると電源が落ちる",
+      "summary": "FortiGate 70G を HA の A-P にして無線の通信があると、思わぬ電源断が起きる。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FGT70G"
+        ]
+      },
+      "when": {
+        "path": "system ha",
+        "key": "mode",
+        "op": "eq",
+        "value": "a-p"
+      },
+      "judge": "manual",
+      "impact": "機器が落ち、フェイルオーバーや通信の断が起きる。",
+      "action": "70G の HA で FortiAP を使っているなら、この版にいる時間を短くする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1193085",
+      "section": "known_issue",
+      "bug_id": "1193085",
+      "title": "proxy-arp のアドレスが 256 を超えると設定に失敗する",
+      "summary": "proxy-arp のアドレスのグループが 256 件を超えると、設定に失敗する。",
+      "severity": "medium",
+      "when": {
+        "path": "system proxy-arp[*]"
+      },
+      "judge": "manual",
+      "impact": "proxy-arp が効かず、その宛先の通信が届かない。",
+      "action": "proxy-arp の範囲を 256 件より小さく分ける。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1248631",
+      "section": "known_issue",
+      "bug_id": "1248631",
+      "title": "FortiWiFi-50G が無線の接続で再起動する",
+      "summary": "FortiWiFi-50G で、RADIUS 認証や ax の帯域で無線の端末がつながると、ときどき再起動する。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FWF50G"
+        ]
+      },
+      "when": {
+        "path": "wireless-controller vap[*]"
+      },
+      "judge": "auto",
+      "impact": "機器が再起動し、通信が途切れる。",
+      "action": "当てはまれば、この版にいる時間を短くする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1259458",
+      "section": "known_issue",
+      "bug_id": "1259458",
+      "title": "71G が IPS エンジンの不具合で再起動する",
+      "summary": "FortiGate-71G が、IPS エンジンのエラーでときどき再起動する。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FGT71G"
+        ]
+      },
+      "when": {
+        "any": [
+          {
+            "path": "firewall policy[*]",
+            "key": "ips-sensor",
+            "op": "exists"
+          },
+          {
+            "path": "firewall policy[*]",
+            "key": "application-list",
+            "op": "exists"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "機器が再起動し、通信が途切れる。",
+      "action": "当てはまれば、この版にいる時間を短くする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
+    },
+    {
+      "id": "7.6.6-KI-1283972",
+      "section": "known_issue",
+      "bug_id": "1283972",
+      "title": "FortiSentry が怪しいと判断すると再起動する",
+      "summary": "FortiSentry が怪しい状態と判断すると、機器を再起動する。",
+      "severity": "medium",
+      "judge": "manual",
+      "impact": "思わぬ再起動で通信が途切れる。",
+      "action": "FortiSentry のセキュリティレベルを low にすると避けられる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/236526/known-issues"
     }
   ]
 }

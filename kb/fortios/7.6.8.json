@@ -18,10 +18,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -52,10 +61,19 @@
       "when": {
         "all": [
           {
-            "path": "firewall policy[*]",
-            "key": "srcintf",
-            "op": "regex",
-            "value": "(^|\\s|\")ssl\\."
+            "any": [
+              {
+                "path": "firewall policy[*]",
+                "key": "srcintf",
+                "op": "intf_regex",
+                "value": "^ssl\\."
+              },
+              {
+                "path": "vpn ssl settings",
+                "key": "source-interface",
+                "op": "exists"
+              }
+            ]
           },
           {
             "path": "vpn ssl web portal[*]",
@@ -997,6 +1015,27 @@
       "impact": "同じアクセス VLAN のクライアントの間で、これまで止まっていたマルチキャストが届くようになる。",
       "action": "意図した動きか確かめる。届けたくなければマルチキャストポリシーを見直す。",
       "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/743723/new-features-or-enhancements"
+    },
+    {
+      "id": "7.6.8-KI-1226122",
+      "section": "known_issue",
+      "bug_id": "1226122",
+      "title": "HA の upgrade-mode が local-only・secondary-only だと副機の GUI に上げるボタンが無い",
+      "summary": "HA の upgrade-mode（MVC のアップグレードの方式）が local-only か secondary-only だと、副機の GUI の System > HA にアップグレードのボタンが出ない。",
+      "severity": "low",
+      "when": {
+        "path": "system ha",
+        "key": "upgrade-mode",
+        "op": "in",
+        "value": [
+          "local-only",
+          "secondary-only"
+        ]
+      },
+      "judge": "auto",
+      "impact": "GUI だけでは副機を上げられず、作業の手順が変わる。",
+      "action": "副機は CLI（execute restore image など）で上げる手順にしておく。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/236526/known-issues"
     }
   ]
 }
