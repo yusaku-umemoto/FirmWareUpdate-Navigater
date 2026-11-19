@@ -1,0 +1,189 @@
+{
+  "product": "fortios",
+  "version": "7.4.7",
+  "source": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes",
+  "reviewed": false,
+  "coverage": {"known_issue": false},
+  "items": [
+    {
+      "id": "7.4.7-UP-2gb-proxy",
+      "section": "upgrade",
+      "dedupe": "sn:2-gb-ram-fortigate-models-no-longer-support-most-fortios-proxy-related-features",
+      "introduced": {"7.4": "7.4.4", "7.6": "7.6.0"},
+      "title": "2GB RAM 機でプロキシ系の機能が使えない",
+      "summary": "7.4.4 から、2GB 以下の機種（40F・60E・60F・80E・90E 系と FGR-60F の 2GB 版）ではプロキシ系の機能が使えない。",
+      "severity": "high",
+      "models": {"only": ["FGT40F", "FWF40F", "FGT41F", "FWF41F", "FGT60F", "FWF60F", "FGT61F", "FWF61F", "FGR60F", "FGT60E", "FWF60E", "FGT61E", "FWF61E", "FGT80E", "FGT81E", "FGT90E", "FGT91E"]},
+      "when": {"any": [
+        {"path": "firewall policy[*]", "key": "inspection-mode", "op": "eq", "value": "proxy"},
+        {"path": "web-proxy explicit", "key": "status", "op": "eq", "value": "enable"},
+        {"path": "firewall proxy-policy[*]"}
+      ]},
+      "judge": "auto",
+      "impact": "プロキシモードのポリシー・明示プロキシが使えなくなり、検査の方法が変わる（フローベースになる）。",
+      "action": "プロキシに頼っている検査（Web フィルタの一部・DLP など）を洗い出し、フローベースで足りるか確かめる。足りなければ上位機種を検討する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/768039/2-gb-ram-fortigate-models-no-longer-support-fortios-proxy-related-features"
+    },
+    {
+      "id": "7.4.7-UP-fortiswitch-empty-password",
+      "section": "upgrade",
+      "dedupe": "sn:managed-fortiswitch-do-not-permit-empty-passwords-for-administrator-accounts",
+      "introduced": {"7.4": "7.4.6", "7.6": "7.6.1"},
+      "title": "管理下の FortiSwitch で空の admin パスワードが使えなくなる",
+      "summary": "7.4.6 から、FortiSwitch の admin のパスワードが空だと、FortiGate が無作為のパスワードを付ける。",
+      "severity": "high",
+      "when": {"all": [
+        {"path": "switch-controller managed-switch[*]"},
+        {"not": {"path": "switch-controller switch-profile[*]", "key": "login-passwd-override", "op": "eq", "value": "enable"}}
+      ]},
+      "judge": "manual",
+      "impact": "admin のパスワードが空の FortiSwitch に、直接ログインできなくなる。",
+      "action": "各 FortiSwitch に admin のパスワードがあるか確かめる。無ければ switch-profile で login-passwd-override enable と login-passwd を設定する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/136353/managed-fortiswitch-do-not-permit-empty-passwords-for-administrator-accounts"
+    },
+    {
+      "id": "7.4.7-UP-sdwan-zone-policies",
+      "section": "upgrade",
+      "dedupe": "sn:policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade",
+      "introduced": {"7.4": "7.4.6", "7.6": "7.6.1"},
+      "title": "SD-WAN ゾーンのメンバーを使うポリシーが消える・空になる",
+      "summary": "7.4.5 以前で、SD-WAN ゾーンに入っているインターフェースを local-in ポリシーで使っていると、7.4.6 以降へ上げたときに消えるか空になる。",
+      "severity": "high",
+      "when": {"all": [
+        {"path": "system sdwan zone[*]"},
+        {"any": [
+          {"path": "firewall local-in-policy[*]"},
+          {"path": "firewall DoS-policy[*]"},
+          {"path": "firewall interface-policy[*]"},
+          {"path": "firewall multicast-policy[*]"},
+          {"path": "firewall ttl-policy[*]"},
+          {"path": "firewall central-snat-map[*]"}
+        ]}
+      ]},
+      "judge": "ai",
+      "ai": {"question": "local-in-policy・DoS-policy・interface-policy・multicast-policy・ttl-policy・central-snat-map のどれかで、system sdwan members に入っているインターフェース（intf / srcintf / dstintf）を直接使っていますか？", "context": ["system sdwan", "firewall local-in-policy", "firewall DoS-policy", "firewall interface-policy", "firewall multicast-policy", "firewall ttl-policy", "firewall central-snat-map"]},
+      "impact": "これらのポリシーが消えるか、インターフェースが空になる。",
+      "action": "上げたあと、消えたポリシーを作り直し、SD-WAN ゾーンを指定する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/925230/policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade"
+    },
+    {
+      "id": "7.4.7-SN-ztna-smb",
+      "section": "special_notice",
+      "dedupe": "sn:smb-drive-mapping-with-ztna-access-proxy",
+      "introduced": "7.4.1",
+      "title": "ZTNA アクセスプロキシ経由の SMB ドライブが再起動後に使えない",
+      "summary": "7.4.1 から、ZTNA アクセスプロキシの TCP フォワーディングを FQDN で設定していると、Windows PC の再起動後に SMB のドライブ割り当てが使えなくなる。IP で設定していれば起きない。",
+      "severity": "low",
+      "when": {"path": "firewall access-proxy[*] api-gateway[*]", "key": "service", "op": "eq", "value": "tcp-forwarding"},
+      "judge": "ai",
+      "ai": {"question": "TCP フォワーディングのアクセスプロキシで、SMB（445）のサーバーを FQDN のアドレスで指定していますか？", "context": ["firewall access-proxy", "firewall address"]},
+      "impact": "ZTNA 経由で割り当てた SMB のドライブに、PC の再起動後につながらない。",
+      "action": "Windows の資格情報マネージャーに domain\\username の形で資格情報を入れるか、KDC プロキシで Kerberos のチケットを出す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/832119/smb-drive-mapping-with-ztna-access-proxy"
+    },
+    {
+      "id": "7.4.7-SN-ecmp-local-out",
+      "section": "special_notice",
+      "dedupe": "sn:local-out-traffic-using-ecmp-routes-could-use-different-port-or-route-to-server",
+      "introduced": "7.4.1",
+      "title": "ECMP があると自機発の通信の出口が変わることがある",
+      "summary": "7.4.1 から、ECMP のルートがあると、FortiGate 自身が出す通信（FortiGuard・ログ送信など）が別のポート・ルートを使うことがある。",
+      "severity": "medium",
+      "when": {"any": [
+        {"path": "router static[*]"},
+        {"path": "system sdwan", "key": "status", "op": "eq", "value": "enable"}
+      ]},
+      "judge": "ai",
+      "ai": {"question": "同じ宛先へ、距離と優先度が同じルート（ECMP）が複数ありますか（SD-WAN のメンバーを含む）？", "context": ["router static", "system sdwan"]},
+      "impact": "送信元の IP が変わり、相手側で送信元を絞っている通信（ログ・認証・管理など）が失敗することがある。",
+      "action": "送信元の IP が大事な自機発の通信は、interface-select-method specify と interface で出口を決める（例：system fortiguard）。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/421162/local-out-traffic-using-ecmp-routes-could-use-different-port-or-route-to-server"
+    },
+    {
+      "id": "7.4.7-SN-hyperscale-np7-pba",
+      "section": "special_notice",
+      "dedupe": "sn:hyperscale-np7-hardware-limitation",
+      "title": "Hyperscale の PBA の IP プールでブロックが 1 つしか割り当てられない",
+      "summary": "NP7 の制限で、Hyperscale のポリシーでポートブロック割り当て（overload PBA）の IP プールを使うと、クライアントごとに 1 ブロックしか割り当てない。cgn-resource-quota は無視される。ほかの制限は Hyperscale Firewall Guide の incompatibilities and limitations にある。",
+      "severity": "medium",
+      "when": {"path": "firewall ippool[*]", "key": "type", "op": "eq", "value": "cgn-resource-allocation"},
+      "judge": "auto",
+      "impact": "同じサーバーの IP・ポートに多くのセッションを張るクライアントで、ポートの割り当てに失敗することがある。",
+      "action": "必要なら IP プールの cgn-block-size を大きくする。Hyperscale を使っているなら、Hyperscale Firewall Guide の制限の一覧も読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/974969/hyperscale-np7-hardware-limitation"
+    },
+    {
+      "id": "7.4.7-SN-fg6000-7000",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-6000-and-7000-upgrade-information",
+      "title": "FortiGate 6000・7000 は専用の注意がある",
+      "summary": "6000・7000 シリーズには専用のアップグレード情報と制限がある。グレースフルアップグレードには HA で uninterruptible-upgrade と session-pickup を有効にする。",
+      "severity": "high",
+      "models": {"only": ["fg6000_7000"]},
+      "judge": "manual",
+      "impact": "手順を誤ると通信断が起きる。単体や uninterruptible-upgrade 無効の HA では、上げる間しばらく通信が止まる。",
+      "action": "リリースノートの「FortiGate 6000 and 7000 upgrade information」と「incompatibilities and limitations」を読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/725026/fortigate-6000-and-7000-upgrade-information"
+    },
+    {
+      "id": "7.4.7-UP-vm-memory",
+      "section": "upgrade",
+      "dedupe": "sn:fortigate-vm-memory-and-upgrade",
+      "title": "FortiGate VM は 4GB 以上のメモリを勧める",
+      "summary": "VM はメモリの量で機能が減ることはないが、性能のため 4GB 以上のメモリを勧める。",
+      "severity": "low",
+      "models": {"only": ["vm"]},
+      "judge": "manual",
+      "impact": "メモリが少ない VM では、上げたあと性能が落ちることがある。",
+      "action": "VM に割り当てたメモリが 4GB 以上か確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/789224/fortigate-vm-memory-and-upgrade"
+    },
+    {
+      "id": "7.4.7-UP-fabric-versions",
+      "section": "upgrade",
+      "dedupe": "sn:fortinet-security-fabric-upgrade",
+      "title": "FortiAnalyzer・FortiManager を先に上げる",
+      "summary": "7.4.7 で確かめた組み合わせは FortiAnalyzer・FortiManager 7.4.6。上げる順は FortiAnalyzer → FortiManager → FortiGate → FortiExtender → FortiSwitch → FortiAP。Security Fabric では全部の FortiGate を同じ版にする。",
+      "severity": "medium",
+      "when": {"any": [
+        {"path": "system central-management", "key": "type", "op": "eq", "value": "fortimanager"},
+        {"path": "log fortianalyzer setting", "key": "status", "op": "eq", "value": "enable"},
+        {"path": "system csf", "key": "status", "op": "eq", "value": "enable"}
+      ]},
+      "judge": "manual",
+      "impact": "管理側（FortiAnalyzer・FortiManager）が古いと、管理・ログの取り込みがうまくいかないことがある。",
+      "action": "FortiAnalyzer・FortiManager の版を確かめ、先に上げておく。Fabric の FortiGate はそろえて上げる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/936594/fortinet-security-fabric-upgrade"
+    },
+    {
+      "id": "7.4.7-UP-gui-upgrade-path",
+      "section": "upgrade",
+      "dedupe": "sn:gui-firmware-upgrade-does-not-respect-upgrade-path-in-previous-versions",
+      "introduced": "7.4.4",
+      "title": "7.4.0〜7.4.3 から GUI で上げると推奨の経路を飛ばす",
+      "summary": "7.4.0〜7.4.3 から GUI の「Follow upgrade path」で何段も上げると、推奨の経路を通らずに最後の版へ直接上がる。設定が消えることがある。",
+      "severity": "high",
+      "judge": "manual",
+      "impact": "途中の版を飛ばすので、設定の一部が消えることがある。",
+      "action": "GUI で上げるときは、経路の途中の版を一つずつ上げる（Upgrade Path Tool で経路を確かめる）。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/918604/gui-firmware-upgrade-does-not-respect-upgrade-path-in-previous-versions"
+    },
+    {
+      "id": "7.4.7-UP-voip-profile",
+      "section": "upgrade",
+      "dedupe": "sn:ips-based-and-voipd-based-voip-profiles",
+      "introduced": "7.4.0",
+      "title": "VoIP プロファイルの feature-set が ips・voipd に変わる",
+      "summary": "7.4.0 から VoIP プロファイルの feature-set の flow が ips に、proxy が voipd に名前が変わった。上げると ips のプロファイルはポリシーの ips-voip-filter へ移る。",
+      "severity": "low",
+      "when": {"any": [
+        {"path": "voip profile[*]", "key": "feature-set", "op": "in", "value": ["flow", "proxy"]},
+        {"path": "firewall policy[*]", "key": "voip-profile", "op": "exists"}
+      ]},
+      "judge": "auto",
+      "impact": "設定は自動で書き換わる。ポリシーで VoIP プロファイルを指定する項目が voip-profile と ips-voip-filter に分かれる。",
+      "action": "上げたあと、VoIP（SIP）を通すポリシーの voip-profile・ips-voip-filter を確かめる。自動化のスクリプトがあれば新しい名前に直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/fortios-release-notes/84861/ips-based-and-voipd-based-voip-profiles"
+    }
+  ]
+}

@@ -1,0 +1,618 @@
+{
+  "product": "fortios",
+  "version": "7.6.3",
+  "source": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes",
+  "reviewed": false,
+  "coverage": {
+    "known_issue": false
+  },
+  "items": [
+    {
+      "id": "7.6.3-SN-ssl-vpn-tunnel",
+      "section": "special_notice",
+      "dedupe": "sn:ssl-vpn-tunnel-mode-replaced-with-ipsec-vpn",
+      "introduced": "7.6.3",
+      "title": "SSL VPN トンネルモードの廃止（IPsec VPN へ移行）",
+      "summary": "7.6.3 から SSL VPN のトンネルモードが GUI・CLI から無くなり、全機種で使えない。設定は引き継がれない。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "firewall policy[*]",
+            "key": "srcintf",
+            "op": "regex",
+            "value": "(^|\\s|\")ssl\\."
+          },
+          {
+            "path": "vpn ssl web portal[*]",
+            "key": "tunnel-mode",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "アップグレード後、SSL VPN（トンネルモード）のリモートアクセスがつながらなくなる。",
+      "action": "上げる前に IPsec VPN（TCP 443 も使える）へ移行する。Fortinet の「SSL VPN to IPsec VPN Migration」を参照。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/173430/ssl-vpn-tunnel-mode-replaced-with-ipsec-vpn"
+    },
+    {
+      "id": "7.6.3-SN-agentless-vpn-2gb",
+      "section": "special_notice",
+      "dedupe": "sn:agentless-vpn-formerly-ssl-vpn-web-mode-not-supported-on-some-fortigate-series-models",
+      "introduced": "7.6.0",
+      "title": "2GB RAM 機で Agentless VPN（旧 SSL VPN Web モード）が使えない",
+      "summary": "40F・60F・61F・FGR-60F（2GB 版）・90G・91G などの 2GB 機では、SSL VPN の Web モードが GUI・CLI から無くなる。設定は引き継がれない。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "all": [
+          {
+            "path": "firewall policy[*]",
+            "key": "srcintf",
+            "op": "regex",
+            "value": "(^|\\s|\")ssl\\."
+          },
+          {
+            "path": "vpn ssl web portal[*]",
+            "key": "web-mode",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "アップグレード後、SSL VPN の Web モード（ブラウザからのアクセス）が使えなくなる。",
+      "action": "IPsec ダイヤルアップ VPN へ移行する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/877104/agentless-vpn-formerly-ssl-vpn-web-mode-not-supported-on-fortigate-40f-60f-and-90g-series-models"
+    },
+    {
+      "id": "7.6.3-SN-2gb-proxy",
+      "section": "special_notice",
+      "dedupe": "sn:2-gb-ram-fortigate-models-no-longer-support-most-fortios-proxy-related-features",
+      "introduced": {
+        "7.4": "7.4.4",
+        "7.6": "7.6.0"
+      },
+      "title": "2GB RAM 機でプロキシ系の機能がほぼ使えない",
+      "summary": "2GB 機ではプロキシベースの検査・明示プロキシなど、プロキシ系の機能の多くが無くなる。7.6.5 でメール（SMTP・POP3・IMAP・NNTP）のプロキシ検査だけ戻った。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "any": [
+          {
+            "path": "firewall policy[*]",
+            "key": "inspection-mode",
+            "op": "eq",
+            "value": "proxy"
+          },
+          {
+            "path": "web-proxy explicit",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "firewall proxy-policy[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "プロキシモードのポリシー・明示プロキシが使えなくなり、検査の方法が変わる（フローベースになる）。",
+      "action": "プロキシに頼っている検査（Web フィルタの一部・DLP など）を洗い出し、フローベースで足りるか確かめる。足りなければ上位機種を検討する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/768039/2-gb-ram-fortigate-models-no-longer-support-fortios-proxy-related-features"
+    },
+    {
+      "id": "7.6.3-SN-2gb-security-rating",
+      "section": "special_notice",
+      "dedupe": "sn:2-gb-ram-fortigate-models-no-longer-support-security-rating-and-security-fabric-topology",
+      "introduced": "7.6.0",
+      "title": "2GB RAM 機で Security Rating と Fabric トポロジー表示が無くなる",
+      "summary": "2GB 機では安定性のため、Security Rating と Security Fabric のトポロジー表示が削除された。",
+      "severity": "low",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "path": "system csf",
+        "key": "status",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "GUI で Security Rating・トポロジーが見られなくなる。通信には影響しない。",
+      "action": "これらの画面を運用で使っていれば、上位の FortiGate か FortiAnalyzer で代わりに見る。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/169631/2-gb-ram-fortigate-models-no-longer-support-security-rating-and-security-fabric-topology"
+    },
+    {
+      "id": "7.6.3-SN-cp-accel-none",
+      "section": "special_notice",
+      "dedupe": "sn:default-setting-of-cp-accel-mode-is-changed-to-none-on-2gb-memory-models",
+      "title": "4xF・6xF で IPS の CP アクセラレーションが既定で無効になる",
+      "summary": "2GB 機（4xF・6xF 系）では、メモリを減らすため ips global の cp-accel-mode が advanced から none に変わる。",
+      "severity": "medium",
+      "models": {
+        "only": [
+          "soc4_4x6x"
+        ]
+      },
+      "when": {
+        "path": "firewall policy[*]",
+        "key": "ips-sensor",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "IPS のパターン照合を CPU がするので、CPU 使用率が上がることがある。",
+      "action": "IPS を使っているなら、上げたあとの CPU 使用率を見る。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/121361/default-setting-of-cp-accel-mode-is-changed-to-none-on-2gb-memory-models"
+    },
+    {
+      "id": "7.6.3-SN-private-data-encryption",
+      "section": "special_notice",
+      "dedupe": "sn:fortimanager-support-for-updated-fortios-private-data-encryption-key",
+      "introduced": "7.6.1",
+      "title": "private-data-encryption の鍵の作り方が変わる（FortiManager の制限）",
+      "summary": "7.6.1 から private-data-encryption は手で入れる鍵ではなく、無作為に作った鍵になった。無効にしてまた有効にすると、前のバックアップを戻せない。FortiManager からは password 型の項目を取り込めない。",
+      "severity": "medium",
+      "when": {
+        "path": "system global",
+        "key": "private-data-encryption",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "FortiManager での管理に制限が出る。有効・無効を切り替えると、それまでのバックアップが戻せない。",
+      "action": "FortiManager を 7.6.3 以降にする。上げたあとはバックアップを取り直す。private-data-encryption を切り替えない。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/191180/fortimanager-support-for-updated-fortios-private-data-encryption-key"
+    },
+    {
+      "id": "7.6.3-SN-pde-restore",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-cannot-restore-configuration-file-after-private-data-encryption-is-re-enabled",
+      "introduced": "7.6.1",
+      "title": "private-data-encryption を切り替えると前のバックアップを戻せない",
+      "summary": "private-data-encryption は有効にするたびに無作為の鍵を作る。有効のとき取ったバックアップは、無効にしてまた有効にしたあとでは戻せない。",
+      "severity": "low",
+      "when": {
+        "path": "system global",
+        "key": "private-data-encryption",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "private-data-encryption を無効・有効と切り替えたあと、それより前のバックアップから設定を戻せない。",
+      "action": "上げたあとはバックアップを取り直す。private-data-encryption を切り替えたら、そのたびにバックアップを取り直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/335540/fortigate-cannot-restore-configuration-file-after-private-data-encryption-is-re-enabled"
+    },
+    {
+      "id": "7.6.3-SN-hyperscale-hw-session-sync",
+      "section": "special_notice",
+      "dedupe": "sn:hyperscale-with-fgcp-ha-clusters-and-interface-monitoring",
+      "introduced": "7.6.3",
+      "title": "Hyperscale の HA で hw-session-sync-dev を監視できなくなる",
+      "summary": "7.6.3 から、hw-session-sync-dev のインターフェースを HA で監視できない。7.6.4 へ上げると監視の設定が消える。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "system ha",
+            "key": "hw-session-sync-dev",
+            "op": "exists"
+          },
+          {
+            "path": "system ha",
+            "key": "monitor",
+            "op": "exists"
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "system ha の monitor に、hw-session-sync-dev と同じインターフェースが含まれていますか？",
+        "context": [
+          "system ha"
+        ]
+      },
+      "impact": "HA のインターフェース監視の設定が消え、障害時に切り替わらないことがある。",
+      "action": "上げる前に、hw-session-sync-dev のインターフェースを monitor から外すか、別のインターフェースを hw-session-sync-dev にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/598073/hyperscale-with-fgcp-ha-clusters-and-interface-monitoring"
+    },
+    {
+      "id": "7.6.3-SN-hyperscale-np7-pba",
+      "section": "special_notice",
+      "dedupe": "sn:hyperscale-np7-hardware-limitation",
+      "title": "Hyperscale の PBA の IP プールでブロックが 1 つしか割り当てられない",
+      "summary": "NP7 の制限で、Hyperscale のポリシーでポートブロック割り当て（overload PBA）の IP プールを使うと、クライアントごとに 1 ブロックしか割り当てない。cgn-resource-quota は無視される。ほかの制限は Hyperscale Firewall Guide の incompatibilities and limitations にある。",
+      "severity": "medium",
+      "when": {
+        "path": "firewall ippool[*]",
+        "key": "type",
+        "op": "eq",
+        "value": "cgn-resource-allocation"
+      },
+      "judge": "auto",
+      "impact": "同じサーバーの IP・ポートに多くのセッションを張るクライアントで、ポートの割り当てに失敗することがある。",
+      "action": "必要なら IP プールの cgn-block-size を大きくする。Hyperscale を使っているなら、Hyperscale Firewall Guide の制限の一覧も読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/974969/hyperscale-np7-hardware-limitation"
+    },
+    {
+      "id": "7.6.3-SN-np7-qos-type",
+      "section": "special_notice",
+      "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "title": "NP7 の default-qos-type を shaping にできなくなる",
+      "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
+      "severity": "high",
+      "when": {
+        "path": "system npu",
+        "key": "default-qos-type",
+        "op": "eq",
+        "value": "shaping"
+      },
+      "judge": "auto",
+      "impact": "NP7 にオフロードした通信のシェーピングのかかり方が変わる。",
+      "action": "ポリシーのシェーピング・IP ごとのシェーピングは TPE、インターフェースのシェーピングプロファイルは QTM になることを踏まえ、帯域制御の結果を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/729039/changes-to-np7-traffic-shaping",
+      "bug_id": "1142013"
+    },
+    {
+      "id": "7.6.3-SN-vm-memory",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-vm-memory-and-upgrade",
+      "title": "FortiGate VM は 4GB 以上のメモリを勧める",
+      "summary": "VM はメモリの量で機能が減ることはないが、性能のため 4GB 以上のメモリを勧める。",
+      "severity": "low",
+      "models": {
+        "only": [
+          "vm"
+        ]
+      },
+      "judge": "manual",
+      "impact": "メモリが少ない VM では、上げたあと性能が落ちることがある。",
+      "action": "VM に割り当てたメモリが 4GB 以上か確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/789224/fortigate-vm-memory-and-upgrade"
+    },
+    {
+      "id": "7.6.3-SN-fortiswitch-empty-password",
+      "section": "special_notice",
+      "dedupe": "sn:managed-fortiswitch-do-not-permit-empty-passwords-for-administrator-accounts",
+      "introduced": {
+        "7.4": "7.4.6",
+        "7.6": "7.6.1"
+      },
+      "title": "管理下の FortiSwitch で空の admin パスワードが使えなくなる",
+      "summary": "7.6.1 から、FortiSwitch の admin のパスワードが空だと、FortiGate が無作為のパスワードを付ける。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "switch-controller managed-switch[*]"
+          },
+          {
+            "not": {
+              "path": "switch-controller switch-profile[*]",
+              "key": "login-passwd-override",
+              "op": "eq",
+              "value": "enable"
+            }
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "admin のパスワードが空の FortiSwitch に、直接ログインできなくなる。",
+      "action": "各 FortiSwitch に admin のパスワードがあるか確かめる。無ければ switch-profile で login-passwd-override enable と login-passwd を設定する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/136353/managed-fortiswitch-do-not-permit-empty-passwords-for-administrator-accounts"
+    },
+    {
+      "id": "7.6.3-SN-1000f-speed",
+      "section": "special_notice",
+      "dedupe": "sn:removed-speed-setting-affects-sfp-interfaces-after-upgrade",
+      "introduced": "7.6.1",
+      "title": "1000F・1001F で 1000auto が無くなり SFP+ のリンクが落ちる",
+      "summary": "7.6.1 で 1000F・1001F の speed 1000auto が無くなった。上げると SFP+ の speed が 10000full に変わる。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "FG1000F",
+          "FG1001F"
+        ]
+      },
+      "when": {
+        "path": "system interface[*]",
+        "key": "speed",
+        "op": "eq",
+        "value": "1000auto"
+      },
+      "judge": "auto",
+      "impact": "1000auto にしていた SFP+ のインターフェースがリンクダウンする。",
+      "action": "上げたあと、そのインターフェースの speed を 1000full にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/752341/removed-speed-setting-affects-sfp-interfaces-after-upgrade"
+    },
+    {
+      "id": "7.6.3-SN-sdwan-zone-policies",
+      "section": "special_notice",
+      "dedupe": "sn:policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade",
+      "introduced": {
+        "7.4": "7.4.6",
+        "7.6": "7.6.1"
+      },
+      "title": "SD-WAN ゾーンのメンバーを使うポリシーが消える・空になる",
+      "summary": "7.4.5・7.6.0 以前で、SD-WAN ゾーンに入っているインターフェースを local-in・DoS・インターフェース・マルチキャスト・TTL ポリシー・中央 SNAT で使っていると、7.4.6・7.6.1 以降へ上げたときに消えるか空になる。7.6.3 で直った（7.6.3 へ直接上げれば残る）。",
+      "severity": "high",
+      "when": {
+        "all": [
+          {
+            "path": "system sdwan zone[*]"
+          },
+          {
+            "any": [
+              {
+                "path": "firewall local-in-policy[*]"
+              },
+              {
+                "path": "firewall DoS-policy[*]"
+              },
+              {
+                "path": "firewall interface-policy[*]"
+              },
+              {
+                "path": "firewall multicast-policy[*]"
+              },
+              {
+                "path": "firewall ttl-policy[*]"
+              },
+              {
+                "path": "firewall central-snat-map[*]"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "ai",
+      "ai": {
+        "question": "local-in-policy・DoS-policy・interface-policy・multicast-policy・ttl-policy・central-snat-map のどれかで、system sdwan members に入っているインターフェース（intf / srcintf / dstintf）を直接使っていますか？",
+        "context": [
+          "system sdwan",
+          "firewall local-in-policy",
+          "firewall DoS-policy",
+          "firewall interface-policy",
+          "firewall multicast-policy",
+          "firewall ttl-policy",
+          "firewall central-snat-map"
+        ]
+      },
+      "impact": "これらのポリシーが消えるか、インターフェースが空になる。",
+      "action": "7.6.3 以降へ上げたあと、消えたポリシーを作り直し、SD-WAN ゾーンを指定する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/925230/policies-that-use-an-interface-show-missing-or-empty-values-after-an-upgrade"
+    },
+    {
+      "id": "7.6.3-SN-fabric-versions",
+      "section": "upgrade",
+      "dedupe": "sn:fortinet-security-fabric-upgrade",
+      "title": "FortiAnalyzer・FortiManager は 7.6.3 以降が要る",
+      "summary": "7.6.3 で確かめた組み合わせは FortiAnalyzer・FortiManager 7.6.3。上げる順は FortiAnalyzer → FortiManager → FortiGate → FortiExtender → FortiSwitch → FortiAP。Security Fabric では全 FortiGate を 7.6.3 にそろえる。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system central-management",
+            "key": "type",
+            "op": "eq",
+            "value": "fortimanager"
+          },
+          {
+            "path": "log fortianalyzer setting",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "system csf",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "管理側（FortiAnalyzer・FortiManager）が古いと、管理・ログの取り込みがうまくいかないことがある。",
+      "action": "FortiAnalyzer・FortiManager の版を確かめ、先に上げておく。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/936594/fortinet-security-fabric-upgrade"
+    },
+    {
+      "id": "7.6.3-SN-fg6000-7000",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-6000-and-7000-upgrade-information",
+      "title": "FortiGate 6000・7000 は専用の注意がある",
+      "summary": "6000・7000 シリーズには専用のアップグレード情報と制限（override 有効の HA でのグレースフルアップグレード時の通信断など）がある。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "fg6000_7000"
+        ]
+      },
+      "judge": "manual",
+      "impact": "手順を誤ると通信断が起きる。",
+      "action": "リリースノートの「FortiGate 6000 and 7000 upgrade information」と「incompatibilities and limitations」を読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/725026/fortigate-6000-and-7000-upgrade-information"
+    },
+    {
+      "id": "7.6.3-CLI-1116991",
+      "section": "cli",
+      "bug_id": "1116991",
+      "title": "login-lockout-upon-downgrade の名前が変わる",
+      "summary": "system password-policy の login-lockout-upon-downgrade が login-lockout-upon-weaker-encryption に変わった。",
+      "severity": "low",
+      "when": {
+        "path": "system password-policy",
+        "key": "login-lockout-upon-downgrade",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "古い名前で書いたスクリプト・テンプレートが通らなくなる。",
+      "action": "上げたあと設定が引き継がれたか確かめ、スクリプトなどの名前を新しいものに直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.3-CLI-926178",
+      "section": "cli",
+      "bug_id": "926178",
+      "title": "web-proxy の policy-category-deep-inspect が無くなる",
+      "summary": "web-proxy global の policy-category-deep-inspect が無くなり、proxy-policy ごとの https-sub-category になった。カテゴリのプロキシアドレスを使うポリシーで、deep inspection のかかり方が変わることがある。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "web-proxy global",
+            "key": "policy-category-deep-inspect",
+            "op": "exists"
+          },
+          {
+            "all": [
+              {
+                "path": "firewall proxy-policy[*]"
+              },
+              {
+                "path": "firewall proxy-address[*]",
+                "key": "type",
+                "op": "eq",
+                "value": "category"
+              }
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "FortiGuard の URL カテゴリを使うプロキシポリシーで、HTTPS の検査のかかり方が前と変わることがある。",
+      "action": "前の動きのままにしたいなら、上げたあと該当の proxy-policy で https-sub-category disable にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.3-CLI-1021838",
+      "section": "cli",
+      "bug_id": "1021838",
+      "title": "system autoupdate tunneling が無くなる（system fortiguard へ）",
+      "summary": "FortiGuard の更新をプロキシ経由にする system autoupdate tunneling が無くなり、system fortiguard の proxy-server-ip・proxy-server-port・proxy-username・proxy-password になった。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system autoupdate tunneling",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "system autoupdate tunneling",
+            "key": "address",
+            "op": "exists"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "設定が引き継がれないと、プロキシ経由の FortiGuard の更新（シグネチャ・ライセンスの確認）ができなくなる。",
+      "action": "上げたあと system fortiguard の proxy-server-ip などを確かめ、無ければ設定する。FortiGuard の更新ができるか確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.3-CLI-1106960",
+      "section": "cli",
+      "bug_id": "1106960",
+      "title": "Hyperscale の firewall ippool_grp が ippool-grp になる",
+      "summary": "Hyperscale ファイアウォールの config firewall ippool_grp が config firewall ippool-grp に名前が変わった。",
+      "severity": "low",
+      "when": {
+        "path": "firewall ippool_grp[*]"
+      },
+      "judge": "auto",
+      "impact": "古い名前で書いたスクリプト・テンプレートが通らなくなる。",
+      "action": "上げたあと IP プールのグループが残っているか確かめ、スクリプトなどの名前を直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.3-DB-1020808",
+      "section": "default_behavior",
+      "bug_id": "1020808",
+      "introduced": {
+        "7.4": "7.4.6",
+        "7.6": "7.6.3"
+      },
+      "title": "EST で更新する証明書の鍵を作り直すようになる",
+      "summary": "EST で取った証明書を更新するとき、これまでは同じ秘密鍵を使い回したが、既定で新しい鍵を作るようになった（est-regeneration-method create-new-key）。",
+      "severity": "low",
+      "when": {
+        "path": "vpn certificate local[*]",
+        "key": "enroll-protocol",
+        "op": "eq",
+        "value": "est"
+      },
+      "judge": "auto",
+      "impact": "証明書の更新で鍵が変わる。鍵の固定（ピン留め）などをしている相手側では、つながらなくなることがある。",
+      "action": "同じ鍵を使い続ける必要があれば、その証明書で est-regeneration-method use-existing-key にする。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.3-DB-1030529",
+      "section": "default_behavior",
+      "bug_id": "1030529",
+      "title": "管理者の作成・削除・パスワード変更で今のパスワードを聞かれる",
+      "summary": "管理者が自分のパスワードを変えるときは古いパスワードを、ほかの管理者を作る・消すときは自分のパスワードを、GUI・CLI で聞かれるようになった。",
+      "severity": "low",
+      "judge": "manual",
+      "impact": "管理者の作成・削除・パスワード変更を自動でしているスクリプトなどが止まることがある。",
+      "action": "そうした自動化があれば、上げる前に手順を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.3-DB-1099339",
+      "section": "default_behavior",
+      "bug_id": "1099339",
+      "title": "VNE インターフェースの IPv4 アドレスが /32 になる",
+      "summary": "VNE インターフェースの IPv4 アドレスはネットマスク /32 しか使えなくなった。相手側でこのインターフェースへの経路を手で足す必要がある。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system vne-interface[*]"
+          },
+          {
+            "path": "system vne-tunnel",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "VNE トンネルの相手側から、このインターフェースに届かなくなることがある。",
+      "action": "上げたあと、VNE トンネルの相手側にこのインターフェースへの経路を足す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.3-DB-1091818",
+      "section": "default_behavior",
+      "bug_id": "1091818",
+      "title": "IPS の AI/機械学習による検知が既定で有効になる",
+      "summary": "IPS に AI/機械学習のモデルによる検知が加わり、ips global の machine-learning-detection は既定で enable。IPS のライセンスがある機器は定義を自動で取る。",
+      "severity": "low",
+      "when": {
+        "path": "firewall policy[*]",
+        "key": "ips-sensor",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "IPS の検知の結果（ログ・ブロック）が増えることがある。",
+      "action": "上げたあと IPS のログを見る。誤検知が多ければ ips global で machine-learning-detection disable を検討する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.3/fortios-release-notes/743723/new-features-or-enhancements"
+    }
+  ]
+}

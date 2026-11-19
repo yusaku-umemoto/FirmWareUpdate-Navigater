@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FortiGate ファームアップ影響チェック</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6676; --line: #dde1e8;
+  --accent: #2456c9; --accent-ink: #ffffff; --code: #f1f3f6;
+  --hit: #b4232a; --hit-bg: #fdecec; --ai: #7a4d00; --ai-bg: #fff4dc;
+  --chk: #1f5a99; --chk-bg: #e8f1fc; --non: #4c5566; --non-bg: #eef0f3;
+  --high: #b4232a; --medium: #a35d00; --low: #5d6676;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171c; --panel: #1c2027; --text: #e6e9ef; --muted: #9aa3b2; --line: #2e343e;
+    --accent: #6d97ff; --accent-ink: #0d1220; --code: #232831;
+    --hit: #ff8a8f; --hit-bg: #3a1d20; --ai: #ffcf75; --ai-bg: #362a12;
+    --chk: #8cbcff; --chk-bg: #18283d; --non: #aab2c0; --non-bg: #252a32;
+    --high: #ff8a8f; --medium: #ffbe5c; --low: #9aa3b2;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif; }
+header { padding: 20px 24px 8px; max-width: 1080px; margin: 0 auto; }
+header h1 { font-size: 22px; margin: 0 0 4px; }
+header p { margin: 0; color: var(--muted); font-size: 13px; }
+.privacy { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px; background: var(--chk-bg); color: var(--chk); font-size: 12px; }
+main { max-width: 1080px; margin: 0 auto; padding: 8px 24px 48px; }
+section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+h2 .num { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 12px; align-items: center; justify-content: center; margin-right: 8px; vertical-align: 1px; }
+label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+input[type=text], select, textarea { width: 100%; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+textarea { font: 12.5px/1.5 ui-monospace, "Cascadia Mono", Consolas, "BIZ UDGothic", monospace; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.drop { border: 2px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 10px; cursor: pointer; }
+.drop.over { border-color: var(--accent); color: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.grid .wide { grid-column: span 2; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.hint a { color: var(--accent); }
+.detected { font-size: 13px; margin-top: 8px; color: var(--muted); min-height: 1.2em; }
+.detected b { color: var(--text); }
+button { font: inherit; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 7px 14px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; padding: 9px 22px; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.err { color: var(--hit); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+.notes { margin: 0 0 12px; padding: 0; list-style: none; font-size: 13px; }
+.notes li { margin: 2px 0; }
+.notes li.warn { color: var(--medium); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { border-radius: 8px; padding: 8px 14px; border: 2px solid transparent; cursor: pointer; min-width: 110px; text-align: left; }
+.chip .n { font-size: 22px; font-weight: 700; display: block; line-height: 1.1; }
+.chip .l { font-size: 12px; }
+.chip.on { border-color: currentColor; }
+.r-hit { background: var(--hit-bg); color: var(--hit); }
+.r-ai { background: var(--ai-bg); color: var(--ai); }
+.r-chk { background: var(--chk-bg); color: var(--chk); }
+.r-non { background: var(--non-bg); color: var(--non); }
+.card { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
+.card.k-hit { border-left-color: var(--hit); }
+.card.k-ai { border-left-color: var(--ai); }
+.card.k-chk { border-left-color: var(--chk); }
+.card.k-non { border-left-color: var(--line); }
+.card h3 { font-size: 15px; margin: 0 0 4px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.badge { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.sev-high { background: var(--hit-bg); color: var(--high); }
+.sev-medium { background: var(--ai-bg); color: var(--medium); }
+.sev-low { background: var(--non-bg); color: var(--low); }
+.meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.card dl { display: grid; grid-template-columns: 4.5em 1fr; gap: 2px 10px; margin: 6px 0 0; font-size: 13.5px; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; }
+pre.ev { background: var(--code); border-radius: 6px; padding: 8px 10px; margin: 6px 0 0; font: 12px/1.5 ui-monospace, Consolas, monospace; overflow-x: auto; white-space: pre; }
+.card a { color: var(--accent); font-size: 12px; word-break: break-all; }
+.ai-ans { font-size: 13px; margin-top: 6px; font-weight: 600; }
+table.non { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+table.non th, table.non td { text-align: left; border-bottom: 1px solid var(--line); padding: 5px 6px; vertical-align: top; }
+table.non th { color: var(--muted); font-weight: 600; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+footer { max-width: 1080px; margin: 0 auto; padding: 0 24px 32px; color: var(--muted); font-size: 12px; }
+.hidden { display: none !important; }
+@media (max-width: 760px) {
+  header, main, footer { padding-left: 16px; padding-right: 16px; }
+  .grid, .two { grid-template-columns: 1fr; }
+  .grid .wide { grid-column: auto; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>FortiGate ファームアップ影響チェック</h1>
+  <p>リリースノートの項目のうち、手元の config に効くものを洗い出します。</p>
+  <span class="privacy">config はこのブラウザの中だけで処理します。どこにも送りません（通信なし）</span>
+</header>
+<main>
+  <section class="panel">
+    <h2><span class="num">1</span>config を入れる</h2>
+    <div class="drop" id="drop" tabindex="0">ここに config のファイルを落とす（またはクリックして選ぶ）。<code>show</code> の出力でよい</div>
+    <input type="file" id="file" class="hidden" accept=".txt,.conf,.cfg,.log,text/plain">
+    <textarea id="config" rows="8" placeholder="または config を貼り付ける（#config-version=… から）"></textarea>
+    <div class="detected" id="detected"></div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="num">2</span>版を選ぶ</h2>
+    <div class="grid">
+      <div>
+        <label for="from">上げる前の版</label>
+        <input type="text" id="from" placeholder="例 7.4.6" list="known-versions" autocomplete="off">
+        <div class="hint">config から読めれば自動で入る</div>
+      </div>
+      <div>
+        <label for="to">上げる先の版</label>
+        <select id="to"></select>
+      </div>
+      <div class="wide">
+        <label for="hops">途中で通る版（カンマ区切り）</label>
+        <input type="text" id="hops" placeholder="例 7.4.8, 7.6.6" autocomplete="off">
+        <div class="hint">Fortinet の <a href="https://docs.fortinet.com/upgrade-tool/fortigate" target="_blank" rel="noopener">Upgrade Path Tool</a> に出る途中の版。空なら多めに見る</div>
+      </div>
+      <div>
+        <label for="model">機種</label>
+        <input type="text" id="model" placeholder="例 FGT60F" autocomplete="off">
+        <div class="hint">config から読めれば自動で入る</div>
+      </div>
+    </div>
+    <datalist id="known-versions"></datalist>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="run">判定する</button>
+      <span class="hint" id="kbinfo"></span>
+    </div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section class="panel hidden" id="result">
+    <h2><span class="num">3</span>結果</h2>
+    <ul class="notes" id="notes"></ul>
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button data-dl="report">report.md</button>
+      <button data-dl="csv">CSV（Excel）</button>
+      <button data-dl="json">result.json</button>
+    </div>
+    <div id="cards"></div>
+  </section>
+
+  <section class="panel hidden" id="aipanel">
+    <h2><span class="num">4</span>社内 AI に聞く</h2>
+    <p class="hint" style="margin-top:0">機械で決めきれない項目だけの問いです。関係する設定の行だけを添えてあります（config 全体は入っていません）。社内 AI に貼り、答えの表を右に貼って「反映」を押すと、結果が「該当／非該当／要確認」に変わります。</p>
+    <div class="two">
+      <div>
+        <label for="aiprompt">社内 AI に貼る文</label>
+        <textarea id="aiprompt" rows="14" readonly></textarea>
+        <div class="row" style="margin-top:6px">
+          <button id="copyai">コピー</button>
+          <button data-dl="ai">ai-prompt.md</button>
+          <span class="hint" id="copied"></span>
+        </div>
+      </div>
+      <div>
+        <label for="aianswer">社内 AI の答え（表をそのまま貼る）</label>
+        <textarea id="aianswer" rows="14" placeholder="| ID | 答え | 根拠の行 | ひとこと |&#10;|---|---|---|---|&#10;| 7.6.8-KI-… | YES | … | … |"></textarea>
+        <div class="row" style="margin-top:6px">
+          <button id="applyai">反映</button>
+          <span class="hint" id="applied"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="flatpanel">
+    <details>
+      <summary>平らにした config を見る（照らし合わせに使った形。パスワードなどは伏せ字）</summary>
+      <pre class="ev" id="flat" style="max-height:420px"></pre>
+    </details>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script id="kb-data" type="application/json">__KB_JSON__</script>
+<script>
+__ENGINE_JS__
+</script>
+<script>
+(function () {
+  "use strict";
+  var F = window.FWNAV;
+  var KB = JSON.parse(document.getElementById("kb-data").textContent);
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { out: null, filter: null, fileName: "" };
+  var KIND = { "該当": "hit", "AI 判定": "ai", "要確認": "chk", "非該当": "non" };
+
+  // ---- 初期化
+  var versions = F.sortedVersions(Object.keys(KB.versions));
+  versions.slice().reverse().forEach(function (v) {
+    var o = document.createElement("option");
+    o.value = v; o.textContent = v + (KB.versions[v].reviewed ? "" : "（未確認）");
+    $("to").appendChild(o);
+  });
+  versions.forEach(function (v) { var o = document.createElement("option"); o.value = v; $("known-versions").appendChild(o); });
+  $("kbinfo").textContent = "知識ベース: " + versions[0] + "〜" + versions[versions.length - 1] + "（" + versions.length + " 版）";
+  $("foot").textContent = "知識ベースの作成日 " + KB.built + "。項目はリリースノートの要約と判定の条件です。最後は各項目の原文で確かめてください。" +
+    "「非該当」は知識ベースの条件に当たらなかったという意味で、知識ベースに無い変更は見ていません。";
+
+  // ---- config の読み込み
+  function decode(buf) {
+    var t = new TextDecoder("utf-8").decode(buf);
+    if (t.indexOf("�") >= 0) {
+      try { t = new TextDecoder("shift_jis").decode(buf); } catch (e) { /* そのまま */ }
+    }
+    return t.replace(/^﻿/, "");
+  }
+  function loadFile(f) {
+    if (!f) return;
+    state.fileName = f.name;
+    f.arrayBuffer().then(function (buf) { $("config").value = decode(buf); onConfig(); });
+  }
+  var drop = $("drop");
+  drop.addEventListener("click", function () { $("file").click(); });
+  drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
+  $("file").addEventListener("change", function () { loadFile(this.files[0]); this.value = ""; });
+  ["dragenter", "dragover"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { loadFile(e.dataTransfer.files[0]); });
+  document.addEventListener("dragover", function (e) { e.preventDefault(); });
+  document.addEventListener("drop", function (e) { if (e.target !== drop) { e.preventDefault(); loadFile(e.dataTransfer.files[0]); } });
+
+  var cfgTimer = null;
+  $("config").addEventListener("input", function () { state.fileName = ""; clearTimeout(cfgTimer); cfgTimer = setTimeout(onConfig, 300); });
+
+  function onConfig() {
+    var text = $("config").value, d = $("detected");
+    if (!text.trim()) { d.textContent = ""; return; }
+    var cfg = new F.Config(text), h = cfg.header;
+    var setCount = cfg.lines.filter(function (l) { return l[2] !== null; }).length;
+    d.innerHTML = "";
+    var parts = [["機種", h.model || "読めない"], ["版", h.version || "読めない"], ["設定の行", String(setCount)]];
+    parts.forEach(function (p, i) {
+      if (i) d.appendChild(document.createTextNode("　"));
+      d.appendChild(document.createTextNode(p[0] + ": "));
+      var b = document.createElement("b"); b.textContent = p[1]; d.appendChild(b);
+    });
+    if (!setCount) d.appendChild(document.createTextNode("　★ config として読めませんでした（config system global などで始まる show の出力を入れてください）"));
+    if (h.version) $("from").value = h.version;
+    if (h.model) $("model").value = h.model;
+  }
+
+  // ---- 判定
+  $("run").addEventListener("click", run);
+  function run() {
+    $("err").textContent = "";
+    var text = $("config").value, frm = $("from").value.trim(), to = $("to").value;
+    var hops = $("hops").value.split(/[,、\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var errs = [];
+    if (!text.trim()) errs.push("config を入れてください。");
+    if (!F.isVersion(frm)) errs.push("上げる前の版を 7.4.6 の形で入れてください。");
+    hops.forEach(function (h) { if (!F.isVersion(h)) errs.push("途中の版「" + h + "」は 7.4.8 の形で入れてください。"); });
+    if (F.isVersion(frm) && cmp(frm, to) >= 0) errs.push("上げる先の版は、上げる前の版より新しくしてください。");
+    hops.forEach(function (h) { if (F.isVersion(h) && F.isVersion(frm) && (cmp(h, frm) <= 0 || cmp(h, to) >= 0)) errs.push("途中の版「" + h + "」は、上げる前と上げる先の間にしてください。"); });
+    if (errs.length) { $("err").textContent = errs.join("\n"); return; }
+    try {
+      state.out = F.check(KB, text, { from: frm, to: to, hops: hops, model: $("model").value.trim() || null, configName: state.fileName });
+    } catch (e) {
+      $("err").textContent = "判定できませんでした: " + e.message;
+      return;
+    }
+    state.filter = null;
+    $("aianswer").value = ""; $("applied").textContent = "";
+    render();
+    $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function cmp(a, b) {
+    var x = a.split(".").map(Number), y = b.split(".").map(Number);
+    for (var i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+    return 0;
+  }
+
+  // ---- 表示
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function render() {
+    var out = state.out, meta = out.meta;
+    ["result", "aipanel", "flatpanel"].forEach(function (id) { $(id).classList.remove("hidden"); });
+    var notes = $("notes"); notes.innerHTML = "";
+    function note(t, warn) { var li = el("li", warn ? "warn" : "", t); notes.appendChild(li); }
+    note("機種: " + (meta.model || "不明") + "　／　通るパス: " + [meta.from].concat(meta.hops, [meta.to]).join(" → "));
+    note("見たリリースノートの版: " + (meta.versions.join(", ") || "なし"));
+    if (meta.unreviewed.length) note("人が原文と突き合わせていない版: " + meta.unreviewed.join(", "), true);
+    if (meta.known_issue_missing) note("上げる先（" + meta.to + "）の Known issues は知識ベースに入っていません", true);
+    if (meta.kb_missing.length) note("知識ベースが無い版: " + meta.kb_missing.join(", ") + "（この版の変更は見ていません）", true);
+    if (!meta.hops.length && cmp(meta.from.split(".").slice(0, 2).join(".") + ".0", meta.to.split(".").slice(0, 2).join(".") + ".0") !== 0)
+      note("途中の版が空なので、上げる前の枝の版をすべて見ています（多めに出ます）", true);
+    if (!meta.model) note("機種が分からないので、機種に限った項目は「要確認」になります", true);
+
+    var c = F.counts(out.results), chips = $("chips"); chips.innerHTML = "";
+    F.ORDER.forEach(function (k) {
+      var b = el("button", "chip r-" + KIND[k] + (state.filter === k ? " on" : ""));
+      b.appendChild(el("span", "n", String(c[k])));
+      b.appendChild(el("span", "l", k));
+      b.title = state.filter === k ? "すべて表示に戻す" : k + " だけ表示する";
+      b.addEventListener("click", function () { state.filter = state.filter === k ? null : k; render(); });
+      chips.appendChild(b);
+    });
+
+    var cards = $("cards"); cards.innerHTML = "";
+    F.ORDER.forEach(function (k) {
+      if (state.filter && state.filter !== k) return;
+      var rs = out.results.filter(function (r) { return r.result === k; });
+      if (!rs.length) return;
+      var h = el("h2", "", k + "（" + rs.length + "）"); h.style.marginTop = "20px";
+      cards.appendChild(h);
+      if (k === "非該当") { cards.appendChild(nonTable(rs)); return; }
+      rs.forEach(function (r) { cards.appendChild(card(r, k)); });
+    });
+
+    $("aiprompt").value = F.aiPromptMarkdown(out);
+    var flat = out.cfg.lines.filter(function (l) { return l[2] !== null; }).map(F.fmtLine);
+    $("flat").textContent = flat.join("\n");
+  }
+
+  function card(r, k) {
+    var it = r.item, d = el("div", "card k-" + KIND[k]);
+    var h = el("h3");
+    h.appendChild(el("span", "badge sev-" + it.severity, { high: "重大", medium: "中", low: "軽微" }[it.severity] || it.severity));
+    h.appendChild(el("span", "", it.title));
+    d.appendChild(h);
+    d.appendChild(el("div", "meta", it.version + " ／ " + (F.SECTION_JA[it.section] || it.section) + (it.bug_id ? " ／ Bug ID " + it.bug_id : "") + " ／ " + r.why));
+    var dl = el("dl");
+    [["内容", it.summary], ["影響", it.impact], ["対処", it.action]].forEach(function (p) {
+      dl.appendChild(el("dt", "", p[0])); dl.appendChild(el("dd", "", p[1]));
+    });
+    if (k === "AI 判定" && it.ai) { dl.appendChild(el("dt", "", "問い")); dl.appendChild(el("dd", "", it.ai.question)); }
+    d.appendChild(dl);
+    if (r.aiAnswer) d.appendChild(el("div", "ai-ans", "社内 AI の答え: " + r.aiAnswer.answer + (r.aiAnswer.evidence ? "　根拠: " + r.aiAnswer.evidence : "") + (r.aiAnswer.note ? "　" + r.aiAnswer.note : "")));
+    if (r.evidence.length) d.appendChild(el("pre", "ev", F.evLines(r.evidence).join("\n")));
+    var a = el("a", "", "原文: " + it.url); a.href = it.url; a.target = "_blank"; a.rel = "noopener";
+    var p = el("div"); p.style.marginTop = "6px"; p.appendChild(a); d.appendChild(p);
+    return d;
+  }
+
+  function nonTable(rs) {
+    var t = el("table", "non"), tr = el("tr");
+    ["版", "重さ", "見出し", "理由"].forEach(function (x) { tr.appendChild(el("th", "", x)); });
+    var thead = el("thead"); thead.appendChild(tr); t.appendChild(thead);
+    var tb = el("tbody");
+    rs.forEach(function (r) {
+      var row = el("tr");
+      row.appendChild(el("td", "", r.item.version));
+      row.appendChild(el("td", "", { high: "重大", medium: "中", low: "軽微" }[r.item.severity]));
+      var td = el("td"), a = el("a", "", r.item.title); a.href = r.item.url; a.target = "_blank"; a.rel = "noopener"; a.style.fontSize = "13px";
+      td.appendChild(a); row.appendChild(td);
+      row.appendChild(el("td", "", r.why));
+      tb.appendChild(row);
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  // ---- 社内 AI
+  $("copyai").addEventListener("click", function () {
+    var ta = $("aiprompt"), done = function () { $("copied").textContent = "コピーしました"; setTimeout(function () { $("copied").textContent = ""; }, 2000); };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(ta.value).then(done, function () { ta.select(); document.execCommand("copy"); done(); });
+    } else { ta.select(); document.execCommand("copy"); done(); }
+  });
+  $("applyai").addEventListener("click", function () {
+    if (!state.out) return;
+    var ids = state.out.results.map(function (r) { return r.item.id; });
+    var ans = F.parseAiAnswers($("aianswer").value, ids), n = Object.keys(ans).length;
+    if (!n) { $("applied").textContent = "答えの表が読めませんでした（1 列目に ID、2 列目に YES / NO / 不明）"; return; }
+    F.applyAiAnswers(state.out, ans);
+    $("applied").textContent = n + " 件を反映しました";
+    render();
+  });
+
+  // ---- ダウンロード
+  function stamp() {
+    var m = state.out.meta;
+    return "fwcheck_" + (m.model || "unknown") + "_" + m.from + "_to_" + m.to;
+  }
+  function save(name, text, type) {
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-dl]");
+    if (!b || !state.out) return;
+    var o = state.out, k = b.getAttribute("data-dl");
+    if (k === "report") save(stamp() + "_report.md", F.reportMarkdown(o), "text/markdown;charset=utf-8");
+    if (k === "ai") save(stamp() + "_ai-prompt.md", F.aiPromptMarkdown(o), "text/markdown;charset=utf-8");
+    if (k === "json") save(stamp() + "_result.json", F.resultJson(o), "application/json;charset=utf-8");
+    if (k === "csv") save(stamp() + ".csv", "﻿" + F.resultCsv(o), "text/csv;charset=utf-8");
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+{
+  "product": "fortios",
+  "version": "7.6.0",
+  "source": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes",
+  "reviewed": false,
+  "coverage": {
+    "known_issue": false
+  },
+  "items": [
+    {
+      "id": "7.6.0-SN-ssl-vpn-2gb",
+      "section": "special_notice",
+      "dedupe": "sn:agentless-vpn-formerly-ssl-vpn-web-mode-not-supported-on-some-fortigate-series-models",
+      "introduced": "7.6.0",
+      "title": "2GB RAM 機で SSL VPN（トンネル・Web モード）が使えない",
+      "summary": "40F・60F・61F・FGR-60F などの 2GB 機では、SSL VPN のトンネルモードと Web モードが GUI・CLI から無くなる。設定は引き継がれない。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "path": "firewall policy[*]",
+        "key": "srcintf",
+        "op": "regex",
+        "value": "(^|\\s|\")ssl\\."
+      },
+      "judge": "auto",
+      "impact": "アップグレード後、SSL VPN のリモートアクセス（FortiClient のトンネル・ブラウザの Web モード）がつながらなくなる。",
+      "action": "上げる前に IPsec ダイヤルアップ VPN へ移行する。Fortinet の「SSL VPN to IPsec VPN Migration」を参照。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/877104/ssl-vpn-removed-from-2gb-ram-models-for-tunnel-and-web-mode"
+    },
+    {
+      "id": "7.6.0-SN-2gb-proxy",
+      "section": "special_notice",
+      "dedupe": "sn:2-gb-ram-fortigate-models-no-longer-support-most-fortios-proxy-related-features",
+      "introduced": {
+        "7.4": "7.4.4",
+        "7.6": "7.6.0"
+      },
+      "title": "2GB RAM 機でプロキシ系の機能がほぼ使えない",
+      "summary": "2GB 機（40F・60F 系など）ではプロキシベースの検査・明示プロキシなど、プロキシ系の機能が無くなる。7.4 の枝でも 7.4.4 から同じ。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "ram_2gb"
+        ]
+      },
+      "when": {
+        "any": [
+          {
+            "path": "firewall policy[*]",
+            "key": "inspection-mode",
+            "op": "eq",
+            "value": "proxy"
+          },
+          {
+            "path": "web-proxy explicit",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "firewall proxy-policy[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "プロキシモードのポリシー・明示プロキシが使えなくなり、検査の方法が変わる（フローベースになる）。",
+      "action": "プロキシに頼っている検査（Web フィルタの一部・DLP など）を洗い出し、フローベースで足りるか確かめる。足りなければ上位機種を検討する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/768039/2-gb-ram-fortigate-models-no-longer-support-fortios-proxy-related-features"
+    },
+    {
+      "id": "7.6.0-SN-cp-accel-none",
+      "section": "special_notice",
+      "dedupe": "sn:default-setting-of-cp-accel-mode-is-changed-to-none-on-2gb-memory-models",
+      "title": "4xF・6xF で IPS の CP アクセラレーションが既定で無効になる",
+      "summary": "2GB 機（4xF・6xF 系）では、メモリを減らすため ips global の cp-accel-mode が advanced から none に変わる。",
+      "severity": "medium",
+      "models": {
+        "only": [
+          "soc4_4x6x"
+        ]
+      },
+      "when": {
+        "path": "firewall policy[*]",
+        "key": "ips-sensor",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "IPS のパターン照合を CPU がするので、CPU 使用率が上がることがある。",
+      "action": "IPS を使っているなら、上げたあとの CPU 使用率を見る。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/121361/default-setting-of-cp-accel-mode-is-changed-to-none-on-2gb-memory-models"
+    },
+    {
+      "id": "7.6.0-SN-vm-memory",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-vm-memory-and-upgrade",
+      "title": "FortiGate VM は 4GB 以上のメモリを勧める",
+      "summary": "VM はメモリの量で機能が減ることはないが、性能のため 4GB 以上のメモリを勧める。",
+      "severity": "low",
+      "models": {
+        "only": [
+          "vm"
+        ]
+      },
+      "judge": "manual",
+      "impact": "メモリが少ない VM では、上げたあと性能が落ちることがある。",
+      "action": "VM に割り当てたメモリが 4GB 以上か確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/789224/fortigate-vm-memory-and-upgrade"
+    },
+    {
+      "id": "7.6.0-SN-hyperscale-np7-pba",
+      "section": "special_notice",
+      "dedupe": "sn:hyperscale-np7-hardware-limitation",
+      "title": "Hyperscale の PBA の IP プールでブロックが 1 つしか割り当てられない",
+      "summary": "NP7 の制限で、Hyperscale のポリシーでポートブロック割り当て（overload PBA）の IP プールを使うと、クライアントごとに 1 ブロックしか割り当てない。cgn-resource-quota は無視される。ほかの制限は Hyperscale Firewall Guide の incompatibilities and limitations にある。",
+      "severity": "medium",
+      "when": {
+        "path": "firewall ippool[*]",
+        "key": "type",
+        "op": "eq",
+        "value": "cgn-resource-allocation"
+      },
+      "judge": "auto",
+      "impact": "同じサーバーの IP・ポートに多くのセッションを張るクライアントで、ポートの割り当てに失敗することがある。",
+      "action": "必要なら IP プールの cgn-block-size を大きくする。Hyperscale を使っているなら、Hyperscale Firewall Guide の制限の一覧も読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/974969/hyperscale-np7-hardware-limitation"
+    },
+    {
+      "id": "7.6.0-SN-fg6000-7000",
+      "section": "special_notice",
+      "dedupe": "sn:fortigate-6000-and-7000-upgrade-information",
+      "title": "FortiGate 6000・7000 は専用の注意がある",
+      "summary": "6000・7000 シリーズには専用のアップグレード情報と制限がある。グレースフルアップグレードには HA で uninterruptible-upgrade と session-pickup を有効にする。",
+      "severity": "high",
+      "models": {
+        "only": [
+          "fg6000_7000"
+        ]
+      },
+      "judge": "manual",
+      "impact": "手順を誤ると通信断が起きる。単体や uninterruptible-upgrade 無効の HA では、上げる間しばらく通信が止まる。",
+      "action": "リリースノートの「FortiGate 6000 and 7000 upgrade information」と「incompatibilities and limitations」を読む。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/725026/fortigate-6000-and-7000-upgrade-information"
+    },
+    {
+      "id": "7.6.0-SN-fabric-versions",
+      "section": "upgrade",
+      "dedupe": "sn:fortinet-security-fabric-upgrade",
+      "title": "FortiAnalyzer・FortiManager を先に上げる",
+      "summary": "7.6.0 で確かめた組み合わせは FortiAnalyzer・FortiManager 7.6.1。上げる順は FortiAnalyzer → FortiManager → FortiGate → FortiExtender → FortiSwitch → FortiAP。Security Fabric では全 FortiGate を同じ版にそろえる。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system central-management",
+            "key": "type",
+            "op": "eq",
+            "value": "fortimanager"
+          },
+          {
+            "path": "log fortianalyzer setting",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          },
+          {
+            "path": "system csf",
+            "key": "status",
+            "op": "eq",
+            "value": "enable"
+          }
+        ]
+      },
+      "judge": "manual",
+      "impact": "管理側（FortiAnalyzer・FortiManager）が古いと、管理・ログの取り込みがうまくいかないことがある。",
+      "action": "FortiAnalyzer・FortiManager の版を確かめ、先に上げておく。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/936594/fortinet-security-fabric-upgrade"
+    },
+    {
+      "id": "7.6.0-CLI-974985",
+      "section": "cli",
+      "bug_id": "974985",
+      "title": "VRRP の adv-interval がミリ秒になる",
+      "summary": "VRRP の adv-interval は、これまで秒（1〜255）だったが、ミリ秒（250〜255000）で指定するようになった。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system interface[*] vrrp[*]"
+          },
+          {
+            "path": "system interface[*] ipv6 vrrp6[*]"
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "値の読み替えがうまくいかないと、VRRP の広告の間隔が変わり、切り替わりの速さや相手機器との整合が変わる。",
+      "action": "上げたあと adv-interval の値を確かめる（1 秒なら 1000）。相手の VRRP 機器と間隔がそろっているか確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.0-CLI-995885",
+      "section": "cli",
+      "bug_id": "995885",
+      "title": "security-rating-result-submission が無くなる",
+      "summary": "system global の security-rating-result-submission が削除された。",
+      "severity": "low",
+      "when": {
+        "path": "system global",
+        "key": "security-rating-result-submission",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "上げるとこの設定は消える。設定を流し込むスクリプトやテンプレートでエラーになる。",
+      "action": "スクリプト・テンプレート（FortiManager を含む）からこの行を外す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.0-CLI-1002468",
+      "section": "cli",
+      "bug_id": "1002468",
+      "title": "FortiManager のシリアル番号を自動で取るようになる",
+      "summary": "system central-management で FortiManager のシリアル番号を手で入れなくても、接続したときに自動で取るようになった。まだつながっていないうちに手で入れるとエラーになる。",
+      "severity": "low",
+      "when": {
+        "path": "system central-management",
+        "key": "type",
+        "op": "eq",
+        "value": "fortimanager"
+      },
+      "judge": "auto",
+      "impact": "FortiManager へ登録する手順（serial-number を先に入れるスクリプトなど）がエラーで止まることがある。",
+      "action": "FortiManager への登録の手順・スクリプトで serial-number を入れていれば、手順を見直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.0-CLI-1009740",
+      "section": "cli",
+      "bug_id": "1009740",
+      "title": "server-type の iot-query が vpatch-query に名前が変わる",
+      "summary": "system central-management の server-list で、server-type の iot-query が vpatch-query になった。",
+      "severity": "low",
+      "when": {
+        "path": "system central-management server-list[*]",
+        "key": "server-type",
+        "op": "regex",
+        "value": "iot-query"
+      },
+      "judge": "auto",
+      "impact": "設定を流し込むスクリプトやテンプレートで iot-query を使っているとエラーになる。",
+      "action": "上げたあと server-list の server-type を確かめ、スクリプト・テンプレートを vpatch-query に直す。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/517622/changes-in-cli"
+    },
+    {
+      "id": "7.6.0-DB-1028017",
+      "section": "default_behavior",
+      "bug_id": "1028017",
+      "title": "SSL 検査の cert-probe-failure の既定が allow になる",
+      "summary": "firewall ssl-ssh-profile の https の cert-probe-failure の既定が block から allow に変わった。",
+      "severity": "medium",
+      "when": {
+        "path": "firewall ssl-ssh-profile[*] https",
+        "key": "cert-probe-failure",
+        "op": "unset"
+      },
+      "judge": "auto",
+      "impact": "既定のままのプロファイルでは、サーバー証明書を取りに行けなかった通信が止まらずに通るようになる。",
+      "action": "これまでどおり止めたいなら、そのプロファイルで cert-probe-failure block を明示する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.0-DB-1030529",
+      "section": "default_behavior",
+      "bug_id": "1030529",
+      "title": "管理者の作成・削除・パスワード変更で今のパスワードを聞かれる",
+      "summary": "管理者が自分のパスワードを変えるときは古いパスワードを、ほかの管理者を作る・消すときは自分のパスワードを、GUI・CLI で聞かれるようになった。",
+      "severity": "low",
+      "judge": "manual",
+      "impact": "管理者の作成・削除・パスワード変更を自動でしているスクリプトなどが止まることがある。",
+      "action": "そうした自動化があれば、上げる前に手順を確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.0-DB-1041367",
+      "section": "default_behavior",
+      "bug_id": "1041367",
+      "title": "VM で IPS の拡張データベースを全部受け取る",
+      "summary": "FortiGate VM は vCPU の数に関係なく、IPS の full extended データベースを受け取るようになった。これまでは 8 コア以上が要った。",
+      "severity": "low",
+      "models": {
+        "only": [
+          "vm"
+        ]
+      },
+      "when": {
+        "path": "firewall policy[*]",
+        "key": "ips-sensor",
+        "op": "exists"
+      },
+      "judge": "auto",
+      "impact": "シグネチャが増え、メモリの使用量や IPS の検知の結果が変わることがある。",
+      "action": "上げたあと、メモリの使用量と IPS のログを確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/230510/changes-in-default-behavior"
+    },
+    {
+      "id": "7.6.0-RM-845078",
+      "section": "removed",
+      "bug_id": "845078",
+      "title": "TLS 1.2 未満と 2048 ビット未満の DH が使えなくなる",
+      "summary": "OpenSSL の FIPS プロバイダーを使うようになり、既定で TLS 1.2・1.3 を使う。Diffie-Hellman のパラメーターは 2048 ビット以上だけになった。",
+      "severity": "medium",
+      "when": {
+        "any": [
+          {
+            "path": "system global",
+            "key": "dh-params",
+            "op": "in",
+            "value": [
+              "1024",
+              "1536"
+            ]
+          },
+          {
+            "path": "system global",
+            "key": "admin-https-ssl-versions",
+            "op": "in",
+            "value": [
+              "tlsv1-0",
+              "tlsv1-1"
+            ]
+          },
+          {
+            "path": "system global",
+            "key": "ssl-min-proto-version",
+            "op": "in",
+            "value": [
+              "TLSv1",
+              "TLSv1-1"
+            ]
+          },
+          {
+            "path": "vpn ssl settings",
+            "key": "ssl-min-proto-ver",
+            "op": "in",
+            "value": [
+              "tls1-0",
+              "tls1-1"
+            ]
+          }
+        ]
+      },
+      "judge": "auto",
+      "impact": "古い TLS や短い DH にしか対応しない相手（古いブラウザ・管理ツール・SSL VPN クライアントなど）とつながらなくなることがある。",
+      "action": "TLS 1.2 未満・DH 2048 ビット未満に頼っている相手が無いか確かめ、あれば相手側を更新する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/743723/new-features-or-enhancements"
+    },
+    {
+      "id": "7.6.0-DB-992606",
+      "section": "default_behavior",
+      "bug_id": "992606",
+      "title": "VDOM の syslog の上書きがあってもグローバルの syslog にも送る",
+      "summary": "これまでは管理用でない VDOM で syslog サーバーを上書きすると、グローバルの syslog サーバーへのログが止まった。7.6.0 からは両方に送れる（log syslogd override-setting の use-management-vdom）。",
+      "severity": "low",
+      "when": {
+        "path": "log syslogd* override-setting",
+        "key": "override",
+        "op": "eq",
+        "value": "enable"
+      },
+      "judge": "auto",
+      "impact": "グローバルの syslog サーバーに、その VDOM のログも届くようになることがある（量・保存先の分け方が変わる）。",
+      "action": "上げたあと、グローバルと VDOM の syslog サーバーに届くログを確かめ、必要なら use-management-vdom を設定する。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/743723/new-features-or-enhancements"
+    },
+    {
+      "id": "7.6.0-NF-972642",
+      "section": "table_size",
+      "bug_id": "972642",
+      "title": "外部リソース（脅威フィード）の件数の上限が機器全体で共通になる",
+      "summary": "外部リソースの件数の上限が機器全体で共通になり、ファイルの大きさの上限は機種ごとに変わるようになった。",
+      "severity": "low",
+      "when": {
+        "path": "system external-resource[*]"
+      },
+      "judge": "manual",
+      "impact": "外部リソースを多く使っている（特に VDOM ごとに使っている）と、上限を超えて読み込めないものが出ることがある。",
+      "action": "外部リソースの数と大きさを確かめ、上げたあと全部読み込めているか確かめる。",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/fortios-release-notes/743723/new-features-or-enhancements"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "note": "機種の群。config の先頭の #config-version の機種名（FGT60F・FWF60F・FG600F など）と前方一致で比べる",
+  "groups": {
+    "ram_2gb": [
+      "FGT40F",
+      "FWF40F",
+      "FGT41F",
+      "FWF41F",
+      "FGT50G",
+      "FWF50G",
+      "FGT51G",
+      "FWF51G",
+      "FGT60F",
+      "FWF60F",
+      "FGT61F",
+      "FWF61F",
+      "FGR60F",
+      "FGT70G",
+      "FWF70G",
+      "FGT71G",
+      "FWF71G",
+      "FGT90G",
+      "FGT91G"
+    ],
+    "soc4_4x6x": [
+      "FGT40F",
+      "FWF40F",
+      "FGT41F",
+      "FWF41F",
+      "FGT60F",
+      "FWF60F",
+      "FGT61F",
+      "FWF61F",
+      "FGR60F"
+    ],
+    "vm": [
+      "FGVM",
+      "FOSVM"
+    ],
+    "fg6000_7000": [
+      "FG6000",
+      "FG6300",
+      "FG6301",
+      "FG6500",
+      "FG6501",
+      "FG7000",
+      "FG7030",
+      "FG7040",
+      "FG7060",
+      "FG7081",
+      "FG7121"
+    ]
+  }
+}
