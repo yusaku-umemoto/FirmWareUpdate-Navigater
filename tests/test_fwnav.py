@@ -197,6 +197,17 @@ class CodexFindings(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual([e[0] for e in ev], ["B"])
 
+    def test_empty_value_is_not_set(self):
+        # show full には set traffic-shaper '' のような空の値が出る。設定ありと数えない
+        cfg = fwnav.Config("config firewall policy\n    edit 1\n        set traffic-shaper ''\n    next\nend\n")
+        self.assertFalse(fwnav.eval_cond(cfg, {"path": "firewall policy[*]", "key": "traffic-shaper"})[0])
+        self.assertTrue(fwnav.eval_cond(cfg, {"path": "firewall policy[*]", "key": "traffic-shaper", "op": "absent"})[0])
+
+    def test_full_config_detected(self):
+        self.assertFalse(fwnav.Config(CFG).full)
+        body = "".join(f"    set k{i} v\n" for i in range(fwnav.FULL_GLOBAL_KEYS))
+        self.assertTrue(fwnav.Config("config system global\n" + body + "end\n").full)
+
     def test_upgrade_bug_selection(self):
         it = {"fixed_in": "7.6.7"}
         self.assertEqual(fwnav.upgrade_bug_hits(it, ["7.6.4", "7.6.6", "7.6.8"]), ["7.6.4", "7.6.6"])

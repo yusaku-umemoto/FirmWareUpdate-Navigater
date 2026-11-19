@@ -166,9 +166,19 @@ def values_of(v):
         return [v.strip('"')]
 
 
+FULL_GLOBAL_KEYS = 100  # show では system global は多くて十数行、show full では 200 行を超える
+
+
+def has_value(ln):
+    """set x '' のような空の値は、設定が無いのと同じに扱う（show full に出る）。"""
+    return values_of(ln[3]) != [""]
+
+
 class Config:
     def __init__(self, text):
         self.lines, self.blocks, self.header = flatten(text)
+        # show full-configuration は既定値も全部書くので、「未設定＝既定値」で見る項目が判定できない
+        self.full = sum(1 for ln in self.lines if ln[1] == "system global" and ln[2]) >= FULL_GLOBAL_KEYS
 
     def match_blocks(self, pat, vdom=ANY):
         """(vdom, path) の並び。"""
@@ -261,7 +271,7 @@ def eval_cond(cfg, c):
         if op == "absent":
             return (not bl), []
         return bool(bl), [(bv, b, None, None) for bv, b in bl]
-    ls = cfg.match_lines(pat, key, vd)
+    ls = [ln for ln in cfg.match_lines(pat, key, vd) if has_value(ln)]
     if op == "exists":
         return bool(ls), ls
     if op == "absent":
@@ -482,6 +492,10 @@ def meta_notes(meta):
         out.append(f"★ 途中の版（{', '.join(meta['hop_ki_missing'])}）の Known issues は知識ベースに入っていない")
     if meta.get("ki_partial"):
         out.append(f"途中の版（{', '.join(meta['ki_partial'])}）の Known issues は、上げる作業に関わるもの（設定の消失・通信断・管理断など）だけを見ている")
+    if meta.get("full_config"):
+        out.append("★ show full-configuration の出力に見える。既定値が変わる項目（設定が書かれていない＝既定値で動く）は判定できないので、show の出力を使う")
+    if vtuple(meta["from"]) >= vtuple(meta["to"]):
+        out.append(f"★ 今の版（{meta['from']}）が上げる先（{meta['to']}）と同じか後なので、見る項目が無い。今の版には上げる前の版を入れる")
     if not meta.get("hops"):
         out.append("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）")
     return out
@@ -657,7 +671,7 @@ def cmd_check(a):
             "kb_missing": [v for v in exp if v not in kb], "config": Path(a.config).name,
             "known_issue_missing": a.to in kb and ki_cov(kb, a.to) is False,
             "hop_ki_missing": [h for h in hops if ki_cov(kb, h) is False],
-            "ki_partial": [h for h in hops if ki_cov(kb, h) == "upgrade"]}
+            "ki_partial": [h for h in hops if ki_cov(kb, h) == "upgrade"], "full_config": cfg.full}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     write_report(res, meta, out)

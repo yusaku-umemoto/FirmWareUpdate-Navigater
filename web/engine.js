@@ -167,11 +167,21 @@
     return t.length ? t : [""];
   }
 
+  var FULL_GLOBAL_KEYS = 100; // show では system global は多くて十数行、show full では 200 行を超える
+
+  // set x '' のような空の値は、設定が無いのと同じに扱う（show full に出る）
+  function hasValue(ln) {
+    var v = valuesOf(ln[3]);
+    return !(v.length === 1 && v[0] === "");
+  }
+
   function Config(text) {
     var f = flatten(text);
     this.lines = f.lines;
     this.blocks = f.blocks;
     this.header = f.header;
+    // show full-configuration は既定値も全部書くので、「未設定＝既定値」で見る項目が判定できない
+    this.full = this.lines.filter(function (ln) { return ln[1] === "system global" && ln[2]; }).length >= FULL_GLOBAL_KEYS;
   }
   // [vdom, path] の並び
   Config.prototype.matchBlocks = function (pat, vdom) {
@@ -258,7 +268,7 @@
       if (op === "absent") return [!bs.length, []];
       return [bs.length > 0, bs.map(function (b) { return [b[0], b[1], null, null]; })];
     }
-    var ls = cfg.matchLines(pat, key, vd);
+    var ls = cfg.matchLines(pat, key, vd).filter(hasValue);
     if (op === "exists") return [ls.length > 0, ls];
     if (op === "absent") return [!ls.length, []];
     var want = c.value, hits = [];
@@ -437,6 +447,8 @@
     if (meta.known_issue_missing) out.push("★ 上げた先（" + meta.to + "）の Known issues は知識ベースに入っていない");
     if (meta.hop_ki_missing.length) out.push("★ 途中の版（" + meta.hop_ki_missing.join(", ") + "）の Known issues は知識ベースに入っていない");
     if (meta.ki_partial.length) out.push("途中の版（" + meta.ki_partial.join(", ") + "）の Known issues は、上げる作業に関わるもの（設定の消失・通信断・管理断など）だけを見ている");
+    if (meta.full_config) out.push("★ show full-configuration の出力に見える。既定値が変わる項目（設定が書かれていない＝既定値で動く）は判定できないので、show の出力を使う");
+    if (vcmp(vtuple(meta.from), vtuple(meta.to)) >= 0) out.push("★ 今の版（" + meta.from + "）が上げる先（" + meta.to + "）と同じか後なので、見る項目が無い。今の版には上げる前の版を入れる");
     if (!meta.hops.length) out.push("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）");
     return out;
   }
@@ -459,7 +471,8 @@
       config: opts.configName || "",
       known_issue_missing: !!target && kiCov(kb, to) === false,
       hop_ki_missing: hops.filter(function (h) { return kiCov(kb, h) === false; }),
-      ki_partial: hops.filter(function (h) { return kiCov(kb, h) === "upgrade"; })
+      ki_partial: hops.filter(function (h) { return kiCov(kb, h) === "upgrade"; }),
+      full_config: cfg.full
     };
     return { cfg: cfg, results: res, meta: meta };
   }
