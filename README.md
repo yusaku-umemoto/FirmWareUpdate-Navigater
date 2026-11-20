@@ -10,7 +10,7 @@ config は社外に出ない。
 
 ## 使い方（ブラウザ版・Python 不要）
 
-**`dist/fortigate-fw-check.html` を 1 つ配るだけ**。ブラウザ（Edge・Chrome）でファイルを開けば動く。インストール・Python は要らず、config はブラウザの外に出ない。
+**[リリース](https://github.com/yusaku-umemoto/FirmWareUpdate-Navigater/releases/latest) の ZIP を取って展開し、`fortigate-fw-check.html` を開くだけ**（中身は `dist/fortigate-fw-check.html` と同じ）。ブラウザ（Edge・Chrome）でファイルを開けば動く。インストール・Python は要らず、config はブラウザの外に出ない。
 
 通信は、開いたときに GitHub の `version.json`（版数・日付・変更の一言だけ）を読む 1 回だけ。手元の HTML が古ければ画面の上に警告が出るので、最新の HTML を取り直す。config は送らない。ネットにつながらない（会社のプロキシで止められるなど）ときは「確かめられなかった」と出るだけで、判定はそのまま使える。
 
@@ -21,10 +21,12 @@ config は社外に出ない。
 
 試しに使うなら `samples/sample-60f-7.4.6.conf`（危ない設定をわざと入れた架空の config）を落とす。
 
-知識ベースや判定を直したら、作る側（Python のある PC）で **`version.json` の版数を上げ**、`CHANGELOG.md` に一行足し、組み立て直して push する。push すると、古い HTML を開いた人に警告が出る。
+知識ベースや判定を直したら、作る側（Python のある PC）で **`version.json` の版数を上げ**、`CHANGELOG.md` に一行足し、組み立て直して push し、リリースを作る。push すると、古い HTML を開いた人に警告が出る。
 
 ```bash
 python3 tools/build_html.py
+git push
+python3 tools/make_release.py --publish   # ZIP を作り、GitHub のリリース v<版> に載せる（gh が要る）
 ```
 
 ## 使い方（コマンド版・Python があるとき）
@@ -80,6 +82,7 @@ tools/validate_kb.py         知識ベースの形を確かめる
 tools/coverage.py            原文の全項目と知識ベースを突き合わせる（入れなかった理由の一覧）
 kb/fortios/excluded/         知識ベースに入れなかった項目と理由
 tools/build_html.py          ブラウザ版を組み立てる（知識ベースと web/engine.js を埋め込む）
+tools/make_release.py        配る ZIP を作り、GitHub のリリースに載せる
 tests/                       python3 -m unittest discover tests（Node があれば、ブラウザ版と結果が一字一句同じかも確かめる）
 ```
 

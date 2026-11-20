@@ -1,6 +1,6 @@
 # 変更の記録
 
-版数は `version.json` で決める。直したら版数を上げ、`python3 tools/build_html.py` で HTML を作り直してから push する。
+版数は `version.json` で決める。直したら版数を上げ、`python3 tools/build_html.py` で HTML を作り直して push し、`python3 tools/make_release.py --publish` でリリースを作る。
 ブラウザ版は開いたときに GitHub の `version.json` を読み、手元の版が古ければ警告を出す。
 
 | 版 | 日付 | 中身 |
