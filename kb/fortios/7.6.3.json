@@ -267,6 +267,10 @@
       "id": "7.6.3-SN-np7-qos-type",
       "section": "special_notice",
       "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "NP7 の default-qos-type を shaping にできなくなる",
       "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
       "severity": "high",

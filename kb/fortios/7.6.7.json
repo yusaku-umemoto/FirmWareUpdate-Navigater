@@ -219,6 +219,11 @@
       "id": "7.6.7-SN-saml-signature",
       "section": "special_notice",
       "dedupe": "sn:saml-certificate-verification",
+      "introduced": {
+        "7.2": "7.2.12",
+        "7.4": "7.4.9",
+        "7.6": "7.6.4"
+      },
       "title": "SAML の署名の確かめ方がゆるくなった",
       "summary": "これまでは SAML のレスポンスとアサーションの両方に署名が要ったが、既定（require-signed-resp-and-asrt disable）ではどちらか一方でよくなった。",
       "severity": "low",
@@ -234,7 +239,10 @@
       "id": "7.6.7-SN-hairpin",
       "section": "special_notice",
       "dedupe": "sn:policy-check-required-for-hairpin-traffic",
-      "introduced": "7.6.5",
+      "introduced": {
+        "7.4": "7.4.10",
+        "7.6": "7.6.5"
+      },
       "title": "折り返し（ヘアピン）通信にポリシーが要るようになる",
       "summary": "7.6.5 で allow-traffic-redirect・ipv6-allow-traffic-redirect の既定が enable から disable になり、上げると enable にしていても disable に変わる。",
       "severity": "high",
@@ -299,6 +307,10 @@
       "id": "7.6.7-SN-np7-qos-type",
       "section": "special_notice",
       "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "NP7 の default-qos-type を shaping にできなくなる",
       "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
       "severity": "high",
@@ -635,6 +647,10 @@
       "id": "7.6.7-DB-1207557",
       "section": "default_behavior",
       "bug_id": "1207557",
+      "introduced": {
+        "7.4": "7.4.10",
+        "7.6": "7.6.7"
+      },
       "title": "VM のライセンス認証の宛先 FQDN が変わる（Anycast 有効時）",
       "summary": "Anycast を有効にしていると、VM のライセンス認証は通常の更新用の FQDN ではなく、専用の vmactivation1/2/3.fortinet.net を使う。",
       "severity": "low",
@@ -644,24 +660,16 @@
         ]
       },
       "when": {
-        "any": [
-          {
-            "path": "system fortiguard",
-            "key": "fortiguard-anycast",
-            "op": "eq",
-            "value": "enable"
-          },
-          {
-            "path": "system fortiguard",
-            "key": "fortiguard-anycast",
-            "op": "unset"
-          }
-        ]
+        "path": "system fortiguard",
+        "key": "fortiguard-anycast",
+        "op": "eq",
+        "value": "enable"
       },
       "judge": "auto",
       "impact": "上流のファイアウォールで宛先を FQDN で絞っていると、VM のライセンス認証が通らないことがある。",
       "action": "外向きの通信を絞っていれば、vmactivation1/2/3.fortinet.net を許可する。",
-      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/230510/changes-in-default-behavior"
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.7/fortios-release-notes/230510/changes-in-default-behavior",
+      "note": "VM の show・show full には fortiguard-anycast が出ない（7.4.13・7.6.8 の VM で確認、Anycast は Disable）。未設定を「有効」と見なさず、明示して有効にしているときだけ当てる"
     },
     {
       "id": "7.6.7-DB-1238339",
@@ -691,6 +699,10 @@
       "id": "7.6.7-DB-1240706",
       "section": "default_behavior",
       "bug_id": "1240706",
+      "introduced": {
+        "7.4": "7.4.12",
+        "7.6": "7.6.7"
+      },
       "title": "NGFW ポリシーモードで IPS が動いていないと通信を落とす",
       "summary": "NGFW のポリシーモードの VDOM は、起動直後や IPS エンジンの更新中など IPS が使えないとき、これまでは通信を素通りさせていたが、落とすようになった。",
       "severity": "medium",
@@ -745,6 +757,10 @@
       "id": "7.6.7-RM-1250003",
       "section": "removed",
       "bug_id": "1250003",
+      "introduced": {
+        "7.4": "7.4.12",
+        "7.6": "7.6.7"
+      },
       "title": "既定の自動化「Firmware Upgrade Notification」が無効になる",
       "summary": "ファームウェアの更新完了の新しい既定の自動化（Firmware Upgrade Complete）が入り、これまでの既定の Firmware Upgrade Notification は無効になった。",
       "severity": "low",

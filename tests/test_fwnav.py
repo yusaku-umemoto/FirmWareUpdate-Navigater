@@ -227,6 +227,20 @@ class Versions(unittest.TestCase):
         self.assertIn("7.4.9", got)
         self.assertNotIn("7.6.9", got)
 
+    def test_direct_path(self):
+        # 7.4.13 → 7.6.8 を直接：上げる前の枝の残りは通らない。途中の版を知らないときは多めに見る
+        known = self.KNOWN + ["7.4.13", "7.4.14"]
+        self.assertEqual(fwnav.versions_in_range(known, "7.4.13", "7.6.8", [], direct=True), ["7.6.0", "7.6.5", "7.6.6", "7.6.7", "7.6.8"])
+        self.assertIn("7.4.14", fwnav.versions_in_range(known, "7.4.13", "7.6.8", []))
+
+    def test_backported_change_is_passed_on_newer_74(self):
+        # 7.4.10 にも入った変更は、7.4.13 から上げるなら済んでいる。7.4.6 からなら出る
+        kb, _ = fwnav.load_kb()
+        ids = lambda frm: {it["id"] for it in fwnav.select_items(kb, frm, "7.6.8", [], direct=True)[1]}
+        self.assertNotIn("7.6.8-SN-hairpin", ids("7.4.13"))
+        self.assertNotIn("7.6.5-DB-1204277", ids("7.4.13"))
+        self.assertIn("7.6.5-DB-1204277", ids("7.4.6"))
+
     def test_already_passed(self):
         self.assertTrue(fwnav.already_passed({"introduced": "7.6.3"}, "7.6.4"))
         self.assertFalse(fwnav.already_passed({"introduced": "7.6.3"}, "7.4.6"))

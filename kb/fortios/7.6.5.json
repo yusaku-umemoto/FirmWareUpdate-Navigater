@@ -219,6 +219,11 @@
       "id": "7.6.5-SN-saml-signature",
       "section": "special_notice",
       "dedupe": "sn:saml-certificate-verification",
+      "introduced": {
+        "7.2": "7.2.12",
+        "7.4": "7.4.9",
+        "7.6": "7.6.4"
+      },
       "title": "SAML の署名の確かめ方がゆるくなった",
       "summary": "これまでは SAML のレスポンスとアサーションの両方に署名が要ったが、既定（require-signed-resp-and-asrt disable）ではどちらか一方でよくなった。",
       "severity": "low",
@@ -234,7 +239,10 @@
       "id": "7.6.5-SN-hairpin",
       "section": "special_notice",
       "dedupe": "sn:policy-check-required-for-hairpin-traffic",
-      "introduced": "7.6.5",
+      "introduced": {
+        "7.4": "7.4.10",
+        "7.6": "7.6.5"
+      },
       "title": "折り返し（ヘアピン）通信にポリシーが要るようになる",
       "summary": "7.6.5 で allow-traffic-redirect・ipv6-allow-traffic-redirect の既定が enable から disable になり、上げると enable にしていても disable に変わる。",
       "severity": "high",
@@ -299,6 +307,10 @@
       "id": "7.6.5-SN-np7-qos-type",
       "section": "special_notice",
       "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "NP7 の default-qos-type を shaping にできなくなる",
       "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
       "severity": "high",
@@ -597,6 +609,10 @@
       "id": "7.6.5-DB-1176942",
       "section": "default_behavior",
       "bug_id": "1176942",
+      "introduced": {
+        "7.4": "7.4.10",
+        "7.6": "7.6.5"
+      },
       "title": "IKE SAML の local-in の当て方が変わる",
       "summary": "auth-ike-saml-port を使うとき、宛先ポートが auth-ike-saml-port で、宛先のインターフェースに ike-saml-server があるときだけ、local-in の通信として当てるようになった。",
       "severity": "low",
@@ -615,6 +631,10 @@
       "id": "7.6.5-DB-1204277",
       "section": "default_behavior",
       "bug_id": "1204277",
+      "introduced": {
+        "7.4": "7.4.10",
+        "7.6": "7.6.5"
+      },
       "title": "FortiGuard の自動更新の既定が daily になる",
       "summary": "FortiGuard のパッケージの自動更新の既定が automatic から daily に変わった。",
       "severity": "low",
@@ -632,6 +652,10 @@
       "id": "7.6.5-GUI-1124242",
       "section": "default_behavior",
       "bug_id": "1124242",
+      "introduced": {
+        "7.4": "7.4.9",
+        "7.6": "7.6.5"
+      },
       "title": "FortiCare に登録しないと GUI と CLI の大半が使えない",
       "summary": "FortiCare に登録していない機器は、GUI に入れず、CLI も一部（firewall・router・system など）を除いて読み取りだけになった。",
       "severity": "medium",

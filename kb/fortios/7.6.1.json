@@ -443,6 +443,10 @@
       "id": "7.6.1-SN-np7-qos-type",
       "section": "special_notice",
       "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "NP7 の default-qos-type を shaping にできなくなる",
       "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
       "severity": "high",
@@ -616,6 +620,10 @@
       "id": "7.6.1-CLI-1035072",
       "section": "cli",
       "bug_id": "1035072",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "access-proxy の empty-cert-action などが仮想ホスト・VIP へ移る",
       "summary": "access-proxy から empty-cert-action・user-agent-detect・client-cert が無くなり、firewall access-proxy-virtual-host と firewall vip（type access-proxy）で設定するようになった。",
       "severity": "medium",
@@ -804,6 +812,10 @@
       "id": "7.6.1-DB-752946",
       "section": "default_behavior",
       "bug_id": "752946",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "管理者パスワードの保存が PBKDF2 になる",
       "summary": "管理者のパスワードを PBKDF2（無作為の salt つき）で保存するようになった。戻したとき（ダウングレード）の扱いは password-policy の login-lockout-upon-downgrade で決める。",
       "severity": "low",

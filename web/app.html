@@ -121,8 +121,8 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 24px 32px; color: var(--m
       </div>
       <div class="wide">
         <label for="hops">途中で通る版（カンマ区切り）</label>
-        <input type="text" id="hops" placeholder="例 7.4.8, 7.6.6" autocomplete="off">
-        <div class="hint">Fortinet の <a href="https://docs.fortinet.com/upgrade-tool/fortigate" target="_blank" rel="noopener">Upgrade Path Tool</a> に出る途中の版。空なら多めに見る</div>
+        <input type="text" id="hops" placeholder="例 7.4.8, 7.6.6（直接上げるなら「なし」）" autocomplete="off">
+        <div class="hint">Fortinet の <a href="https://docs.fortinet.com/upgrade-tool/fortigate" target="_blank" rel="noopener">Upgrade Path Tool</a> に出る途中の版。途中の版なしで直接上げるなら「なし」。空なら多めに見る</div>
       </div>
       <div>
         <label for="model">機種</label>
@@ -257,6 +257,8 @@ __ENGINE_JS__
     $("err").textContent = "";
     var text = $("config").value, frm = $("from").value.trim(), to = $("to").value;
     var hops = $("hops").value.split(/[,、\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var direct = hops.length === 1 && /^(なし|無し|direct|none)$/i.test(hops[0]);
+    if (direct) hops = [];
     var errs = [];
     if (!text.trim()) errs.push("config を入れてください。");
     if (!F.isVersion(frm)) errs.push("上げる前の版を 7.4.6 の形で入れてください。");
@@ -265,7 +267,7 @@ __ENGINE_JS__
     hops.forEach(function (h) { if (F.isVersion(h) && F.isVersion(frm) && (cmp(h, frm) <= 0 || cmp(h, to) >= 0)) errs.push("途中の版「" + h + "」は、上げる前と上げる先の間にしてください。"); });
     if (errs.length) { $("err").textContent = errs.join("\n"); return; }
     try {
-      state.out = F.check(KB, text, { from: frm, to: to, hops: hops, model: $("model").value.trim() || null, configName: state.fileName });
+      state.out = F.check(KB, text, { from: frm, to: to, hops: hops, direct: direct, model: $("model").value.trim() || null, configName: state.fileName });
     } catch (e) {
       $("err").textContent = "判定できませんでした: " + e.message;
       return;

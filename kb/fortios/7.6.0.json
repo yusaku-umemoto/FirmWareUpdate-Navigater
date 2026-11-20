@@ -249,6 +249,10 @@
       "id": "7.6.0-CLI-1009740",
       "section": "cli",
       "bug_id": "1009740",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.0"
+      },
       "title": "server-type の iot-query が vpatch-query に名前が変わる",
       "summary": "system central-management の server-list で、server-type の iot-query が vpatch-query になった。",
       "severity": "low",

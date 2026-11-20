@@ -315,7 +315,8 @@
     return list.slice().sort(function (a, b) { return vcmp(vtuple(a), vtuple(b)); });
   }
 
-  function versionsInRange(known, frm, to, hops) {
+  // direct: 途中の版なしで直接上げると分かっているとき（上げる前の枝の残りの版は通らない）
+  function versionsInRange(known, frm, to, hops, direct) {
     var f = vtuple(frm), t = vtuple(to), last = {};
     hops.map(vtuple).concat([t]).forEach(function (h) {
       var k = brKey(h);
@@ -325,7 +326,7 @@
       var vt = vtuple(v);
       if (!(vcmp(f, vt) < 0 && vcmp(vt, t) <= 0)) return false;
       if (vcmp(br(vt), br(t)) === 0) return true;
-      if (hops.length) return !!last[brKey(vt)] && vcmp(vt, last[brKey(vt)]) <= 0;
+      if (hops.length || direct) return !!last[brKey(vt)] && vcmp(vt, last[brKey(vt)]) <= 0;
       return true;
     });
   }
@@ -348,8 +349,8 @@
     return installed.filter(function (v) { var t = vtuple(v); return vcmp(pf, t) <= 0 && vcmp(t, fx) < 0; });
   }
 
-  function selectItems(kb, frm, to, hops) {
-    var vers = versionsInRange(Object.keys(kb.versions), frm, to, hops);
+  function selectItems(kb, frm, to, hops, direct) {
+    var vers = versionsInRange(Object.keys(kb.versions), frm, to, hops, direct);
     var installed = sortedVersions(Array.from(new Set(hops.concat([to]))));
     var items = [], seen = new Set();
     vers.slice().reverse().forEach(function (v) {
@@ -449,7 +450,7 @@
     if (meta.ki_partial.length) out.push("途中の版（" + meta.ki_partial.join(", ") + "）の Known issues は、上げる作業に関わるもの（設定の消失・通信断・管理断など）だけを見ている");
     if (meta.full_config) out.push("★ show full-configuration の出力に見える。既定値が変わる項目（設定が書かれていない＝既定値で動く）は判定できないので、show の出力を使う");
     if (vcmp(vtuple(meta.from), vtuple(meta.to)) >= 0) out.push("★ 今の版（" + meta.from + "）が上げる先（" + meta.to + "）と同じか後なので、見る項目が無い。今の版には上げる前の版を入れる");
-    if (!meta.hops.length) out.push("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）");
+    if (!meta.hops.length && !meta.direct) out.push("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）");
     return out;
   }
 
@@ -458,14 +459,14 @@
     var cfg = new Config(text);
     var frm = opts.from || cfg.header.version;
     if (!frm) throw new Error("上げる前の版が分からない（config の先頭に #config-version が無い）。上げる前の版を入れてください");
-    var hops = opts.hops || [], to = opts.to;
+    var hops = opts.hops || [], to = opts.to, direct = !!opts.direct;
     var model = opts.model || cfg.header.model || null;
-    var sel = selectItems(kb, frm, to, hops);
+    var sel = selectItems(kb, frm, to, hops, direct);
     var res = sortResults(judge(cfg, sel.items, model, kb.groups || {}));
-    var exp = (hops.length || vcmp(br(vtuple(frm)), br(vtuple(to))) === 0) ? expectedVersions(frm, to, hops) : [];
+    var exp = (hops.length || direct || vcmp(br(vtuple(frm)), br(vtuple(to))) === 0) ? expectedVersions(frm, to, hops) : [];
     var target = kb.versions[to];
     var meta = {
-      from: frm, to: to, hops: hops, model: model, versions: sel.versions,
+      from: frm, to: to, hops: hops, direct: direct, model: model, versions: sel.versions,
       unreviewed: sel.versions.filter(function (v) { return !kb.versions[v].reviewed; }),
       kb_missing: exp.filter(function (v) { return !kb.versions[v]; }),
       config: opts.configName || "",

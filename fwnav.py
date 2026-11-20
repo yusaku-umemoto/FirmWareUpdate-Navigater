@@ -326,12 +326,13 @@ def load_kb():
     return kb, models
 
 
-def versions_in_range(known, frm, to, hops):
+def versions_in_range(known, frm, to, hops, direct=False):
     """from より後で to まで、通る版を古い順に返す。
 
     - 枝（7.4 など）ごとに考える。上げる前の枝は「from < 版 <= その枝で最後に通る版」
     - 途中の枝・上げた先の枝は「x.y.0 <= 版 <= その枝で最後に通る版（先の枝は to）」
     - パスを渡さないときは、上げる前の枝と途中の枝は持っている版を全部入れる（多めに出す）
+    - direct は「途中の版なしで直接上げる」と分かっているとき（上げる前の枝の残りの版は通らない）
     """
     f, t = vtuple(frm), vtuple(to)
     hop_t = sorted(vtuple(h) for h in hops)
@@ -346,7 +347,7 @@ def versions_in_range(known, frm, to, hops):
         br = vt[:2]
         if br == t[:2]:
             out.append(v)
-        elif hops:
+        elif hops or direct:
             if br in last_in_branch and vt <= last_in_branch[br]:
                 out.append(v)
         else:
@@ -383,8 +384,8 @@ def upgrade_bug_hits(it, installed):
     return [v for v in installed if pf <= vtuple(v) < fx]
 
 
-def select_items(kb, frm, to, hops):
-    vers = versions_in_range(kb.keys(), frm, to, hops)
+def select_items(kb, frm, to, hops, direct=False):
+    vers = versions_in_range(kb.keys(), frm, to, hops, direct)
     installed = sorted(set(hops) | {to}, key=vtuple)
     items, seen = [], set()
     # 同じ注意は後の版ほど書き直されているので、新しい版から見て最初のものを残す
@@ -496,7 +497,7 @@ def meta_notes(meta):
         out.append("★ show full-configuration の出力に見える。既定値が変わる項目（設定が書かれていない＝既定値で動く）は判定できないので、show の出力を使う")
     if vtuple(meta["from"]) >= vtuple(meta["to"]):
         out.append(f"★ 今の版（{meta['from']}）が上げる先（{meta['to']}）と同じか後なので、見る項目が無い。今の版には上げる前の版を入れる")
-    if not meta.get("hops"):
+    if not meta.get("hops") and not meta.get("direct"):
         out.append("★ 途中の版を入れていないので、途中の版の不具合は見ていない（Upgrade Path Tool の途中の版を入れる）")
     return out
 
@@ -641,7 +642,8 @@ def range_meta(a, kb, header=None):
     if not frm:
         sys.exit("--from が要る（config の先頭に #config-version が無いため）")
     hops = [h.strip() for h in (a.path or "").split(",") if h.strip()]
-    return frm, hops
+    direct = [h.lower() for h in hops] in (["direct"], ["none"], ["なし"])
+    return frm, ([] if direct else hops), direct
 
 
 def expected_versions(frm, to, hops):
@@ -661,12 +663,12 @@ def expected_versions(frm, to, hops):
 def cmd_check(a):
     kb, groups = load_kb()
     cfg = Config(Path(a.config).read_text(encoding="utf-8", errors="replace"))
-    frm, hops = range_meta(a, kb, cfg.header)
+    frm, hops, direct = range_meta(a, kb, cfg.header)
     model = a.model or cfg.header.get("model")
-    vers, items = select_items(kb, frm, a.to, hops)
+    vers, items = select_items(kb, frm, a.to, hops, direct)
     res = sorted(judge(cfg, items, model, groups), key=sort_key)
-    exp = expected_versions(frm, a.to, hops) if hops or vtuple(frm)[:2] == vtuple(a.to)[:2] else []
-    meta = {"from": frm, "to": a.to, "hops": hops, "model": model, "versions": vers,
+    exp = expected_versions(frm, a.to, hops) if hops or direct or vtuple(frm)[:2] == vtuple(a.to)[:2] else []
+    meta = {"from": frm, "to": a.to, "hops": hops, "direct": direct, "model": model, "versions": vers,
             "unreviewed": [v for v in vers if not kb[v].get("reviewed")],
             "kb_missing": [v for v in exp if v not in kb], "config": Path(a.config).name,
             "known_issue_missing": a.to in kb and ki_cov(kb, a.to) is False,
@@ -684,8 +686,8 @@ def cmd_check(a):
 
 def cmd_list(a):
     kb, _ = load_kb()
-    frm, hops = range_meta(a, kb)
-    vers, items = select_items(kb, frm, a.to, hops)
+    frm, hops, direct = range_meta(a, kb)
+    vers, items = select_items(kb, frm, a.to, hops, direct)
     print(f"版: {', '.join(vers)}  項目: {len(items)}")
     for it in sorted(items, key=lambda x: (SEV_ORDER.get(x["severity"], 9), vtuple(x["version"]))):
         print(f"{it['version']:>7} {it['severity']:<6} {it['judge']:<6} {it['section']:<16} {it['title']}")
@@ -698,7 +700,7 @@ def main():
     c.add_argument("config")
     c.add_argument("--from", dest="frm")
     c.add_argument("--to", required=True)
-    c.add_argument("--path", help="Upgrade Path Tool の途中の版（カンマ区切り）。例 7.4.8,7.6.6")
+    c.add_argument("--path", help="Upgrade Path Tool の途中の版（カンマ区切り）。例 7.4.8,7.6.6。途中の版なしで直接上げるなら direct")
     c.add_argument("--model")
     c.add_argument("--out", default="out")
     f = sub.add_parser("flatten")

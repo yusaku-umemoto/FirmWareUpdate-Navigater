@@ -13,7 +13,7 @@ config は社外に出ない。
 **`dist/fortigate-fw-check.html` を 1 つ配るだけ**。ブラウザ（Edge・Chrome）でファイルを開けば動く。インストール・Python・ネット接続は要らず、config はブラウザの外に出ない（通信しない作り）。
 
 1. config のファイルを画面に落とす（または貼り付ける）。機種と版は config の先頭から自動で入る
-2. 上げる先の版と、Upgrade Path Tool に出る途中の版を入れて「判定する」
+2. 上げる先の版と、Upgrade Path Tool に出る途中の版を入れて「判定する」。途中の版なしで直接上げる（例 7.4.13 → 7.6.8）なら「なし」と入れる
 3. 結果を見る。`report.md`・CSV（Excel 用）・`result.json` を保存できる
 4. 「社内 AI に聞く」の文をコピーして社内 AI に貼る。返ってきた答えの表を右の欄に貼って「反映」すると、AI 判定の項目が 該当（YES）／非該当（NO）／要確認（不明）に変わる
 
@@ -31,7 +31,7 @@ python3 tools/build_html.py
 python3 fwnav.py check running-config.txt --from 7.4.6 --to 7.6.8 --path 7.4.8,7.6.6
 ```
 
-- `--path` は Fortinet の [Upgrade Path Tool](https://docs.fortinet.com/upgrade-tool/fortigate) が出す途中の版（機種と今の版で変わる）。**必ず入れる**。渡さないと、上げる前の枝の版を全部見る（多めに出る）うえ、途中の版の不具合を見ない
+- `--path` は Fortinet の [Upgrade Path Tool](https://docs.fortinet.com/upgrade-tool/fortigate) が出す途中の版（機種と今の版で変わる）。**必ず入れる**。渡さないと、上げる前の枝の版を全部見る（多めに出る）うえ、途中の版の不具合を見ない。途中の版なしで直接上げるなら `--path direct`
 - `--from`・`--model` は config の先頭（`#config-version=FGT60F-7.4.6-…`）から読む。無ければ渡す
 - config は `show`（`show full-configuration` でなくてよい）。既定値が変わった項目は「設定が書かれていない＝既定値で動いている」として判定する
 
@@ -57,6 +57,7 @@ python3 fwnav.py flatten running-config.txt                          # 平らに
 - Known issues は**入れる版（途中の版と上げた先）**。途中の版は上げる作業に関わるものだけ
 - 途中の版の不具合（後の版の Resolved issues に載ったもの）は、途中の版がその不具合の範囲（`present_from` ≤ 版 < `fixed_in`）に入れば出る
 - Special Notices は後の版にも繰り返し載るので一つにまとめ、`introduced`（始まった版）を上げる前の版が過ぎていれば出さない
+- 7.6 の変更が後から 7.4 の版にも入ったもの（例 自動更新の既定が daily になる：7.4.10・7.6.5）は、`introduced` に枝ごとの版を書く。7.4.13 から上げるなら、もう済んでいるので出さない
 
 ## 構成
 
@@ -106,7 +107,8 @@ tests/                       python3 -m unittest discover tests（Node があれ
 | 経路（Upgrade Path Tool） | 原文の項目（重複なし） | 入れた | 入れなかった | 判定の対象 |
 |---|---|---|---|---|
 | 90G・120G：7.4.7 → 7.6.4 → 7.6.6 → 7.6.8 | 640 | 147 | 493 | 137 |
-| 101F：7.4.9 → 7.6.6 → 7.6.8 | 610 | 137 | 473 | 126 |
+| 101F：7.4.9 → 7.6.6 → 7.6.8 | 610 | 137 | 473 | 118 |
+| VM：7.4.13 → 7.6.8（直接） | 517 | 107 | 410 | 81 |
 | 60F：7.4.6 → 7.4.8 → 7.6.6 → 7.6.8 | 744 | 166 | 578 | 153 |
 
 原文の項目は、通る版の Special Notices などの注意のページ・Changes in の表・New features、入れる版の Known issues、途中の版より後の Resolved issues のうちアップグレードに触れる行。Resolved issues のそれ以外の行（数千件）は見ていない。

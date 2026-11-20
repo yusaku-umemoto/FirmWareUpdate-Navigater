@@ -160,9 +160,11 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "out" / "coverage"))
     a = ap.parse_args()
     hops = [h.strip() for h in a.path.split(",") if h.strip()]
+    direct = [h.lower() for h in hops] in (["direct"], ["none"], ["なし"])
+    hops = [] if direct else hops
     kb, _ = fwnav.load_kb()
     known = sorted({p.name for p in CACHE.iterdir() if p.is_dir()} | set(kb), key=fwnav.vtuple)
-    vers = fwnav.versions_in_range(known, a.frm, a.to, hops)
+    vers = fwnav.versions_in_range(known, a.frm, a.to, hops, direct)
     entries = raw_entries(vers, a.to, hops)
     bugs, pages, slugs, where = kb_index(kb)
     reasons = {}

@@ -19,7 +19,7 @@ from test_fwnav import CFG, MULTI_VDOM_CFG, VDOM_CFG, ZONE_CFG  # noqa: E402
 
 CORPUS = Path(os.environ.get("FWNAV_CORPUS", ROOT / "samples"))
 CASES = [("7.4.6", "7.6.8", "7.4.8,7.6.6"), ("", "7.6.8", ""), ("7.6.4", "7.6.8", ""), ("7.4.6", "7.6.6", "7.4.8"),
-         ("7.4.7", "7.6.8", "7.6.4,7.6.6"), ("7.4.9", "7.6.8", "7.6.6")]
+         ("7.4.7", "7.6.8", "7.6.4,7.6.6"), ("7.4.9", "7.6.8", "7.6.6"), ("7.4.13", "7.6.8", "direct")]
 
 
 @unittest.skipUnless(shutil.which("node"), "node が無い")

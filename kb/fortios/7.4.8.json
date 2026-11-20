@@ -88,6 +88,10 @@
       "id": "7.4.8-SN-np7-qos-type",
       "section": "special_notice",
       "dedupe": "sn:changes-to-np7-traffic-shaping",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "NP7 の default-qos-type を shaping にできなくなる",
       "summary": "NP7 の QTM の不具合が直り、system npu の default-qos-type は policing だけになった。インターフェースのシェーピングプロファイルは QTM を使う。",
       "severity": "high",
@@ -546,6 +550,10 @@
       "id": "7.4.8-CLI-1009740",
       "section": "cli",
       "bug_id": "1009740",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.0"
+      },
       "title": "server-type の iot-query が vpatch-query に名前が変わる",
       "summary": "system central-management の server-list で、server-type の iot-query が vpatch-query になった。",
       "severity": "low",
@@ -564,6 +572,10 @@
       "id": "7.4.8-CLI-1035072",
       "section": "cli",
       "bug_id": "1035072",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "access-proxy の empty-cert-action などが別の場所へ移る",
       "summary": "firewall access-proxy の empty-cert-action・user-agent-detect・client-cert が無くなり、firewall access-proxy-virtual-host と firewall vip（type access-proxy）に移った。",
       "severity": "medium",
@@ -617,6 +629,10 @@
       "id": "7.4.8-DB-752946",
       "section": "default_behavior",
       "bug_id": "752946",
+      "introduced": {
+        "7.4": "7.4.8",
+        "7.6": "7.6.1"
+      },
       "title": "管理者パスワードの保存の仕方が PBKDF2 に変わる",
       "summary": "管理者のパスワードを PBKDF2（無作為のソルト付き）でハッシュして保存するようになった。前の版へ戻すときのために system password-policy に login-lockout-upon-downgrade ができた。",
       "severity": "low",
