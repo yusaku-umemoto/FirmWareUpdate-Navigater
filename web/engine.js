@@ -396,6 +396,79 @@
     return true;
   }
 
+  // ------------------------------------------------------------ 条件を日本語の文にする（非該当の理由に使う）
+
+  var REGEX_JA = { "^[1-9]": "0 より大きい", "[A-Za-z0-9]": "空でない" }; // よく使う書き方は言葉にする
+
+  function valsJa(v) { return Array.isArray(v) ? v.map(String).join("・") : String(v); }
+
+  function describeCond(c, inner) {
+    if ("per_block" in c) {
+      var rest = {};
+      Object.keys(c).forEach(function (k) { if (k !== "per_block") rest[k] = c[k]; });
+      return "同じ " + c.per_block + " の中で " + describeCond(rest, true);
+    }
+    var groups = [["any", "、または "], ["all", "、かつ "]];
+    for (var i = 0; i < groups.length; i++) {
+      var k = groups[i][0], sep = groups[i][1];
+      if (k in c) {
+        return c[k].map(function (x) {
+          var t = describeCond(x, inner);
+          return (t.indexOf("、または ") >= 0 || t.indexOf("、かつ ") >= 0) ? "（" + t + "）" : t;
+        }).join(sep);
+      }
+    }
+    if ("not" in c) return "「" + describeCond(c.not, inner) + "」ではない";
+    var path = (c.path || "").replace(/^=+/, ""), key = c.key === undefined ? null : c.key, op = c.op || "exists", val = c.value;
+    if (key === null) return op !== "absent" ? path + " がある" : path + " が無い";
+    var head = inner && !path ? key : path + " の " + key;
+    switch (op) {
+      case "exists": return head + " が書かれている";
+      case "absent": return head + " が書かれていない";
+      case "unset": return head + " を書いていない（既定値で動く）";
+      case "eq": return head + " が " + valsJa(val);
+      case "ne": return head + " が " + valsJa(val) + " 以外";
+      case "in": return head + " が " + valsJa(val) + " のどれか";
+      case "regex": return head + " が " + (REGEX_JA[val] || "/" + val + "/ に合う");
+      case "intf_regex": return head + "（ゾーンの中も見る）が /" + val + "/ に合う";
+      default: return head + " " + op + " " + val;
+    }
+  }
+
+  function unsetLeaves(c, pb, out) {
+    out = out || [];
+    if (!c || typeof c !== "object") return out;
+    pb = c.per_block || pb;
+    ["any", "all"].forEach(function (k) { (c[k] || []).forEach(function (x) { unsetLeaves(x, pb, out); }); });
+    if (c.op === "unset") out.push([c.path || pb, c.key]);
+    return out;
+  }
+
+  // unset の条件を「いつも成り立つ」に置き換えた条件
+  function withoutUnset(c) {
+    if (Array.isArray(c)) return c.map(withoutUnset);
+    if (!c || typeof c !== "object") return c;
+    if (c.op === "unset") return { all: [] };
+    var out = {};
+    Object.keys(c).forEach(function (k) { out[k] = (k === "any" || k === "all" || k === "not") ? withoutUnset(c[k]) : c[k]; });
+    return out;
+  }
+
+  // 非該当の理由。何の条件に当たらなかったかを書く。既定値の変更の項目で値を明示していれば、それも書く
+  function notHitWhy(cfg, it) {
+    var why = "条件に当たらない（当たる条件：" + describeCond(it.when) + "）", shown = [];
+    // 値を明示していなければ当たっていた（＝明示した値が当たらない理由）ときだけ書く
+    var leaves = evalCond(cfg, withoutUnset(it.when))[0] ? unsetLeaves(it.when) : [];
+    leaves.forEach(function (pk) {
+      cfg.matchLines(pk[0], pk[1]).slice(0, 2).forEach(function (ln) {
+        var t = fmtLine(ln);
+        if (shown.indexOf(t) < 0) shown.push(t);
+      });
+    });
+    if (shown.length) why += "。値を明示しているので既定値の変更は効かない：" + shown.slice(0, 2).join("／");
+    return why;
+  }
+
   // ------------------------------------------------------------ 判定
 
   function judge(cfg, items, model, groups) {
@@ -404,7 +477,7 @@
       if (mo === false) { r.result = "非該当"; r.why = "機種が対象外"; return r; }
       var res = it.when ? evalCond(cfg, it.when) : [true, []];
       r.evidence = res[1];
-      if (!res[0]) { r.result = "非該当"; r.why = "条件の設定が無い"; }
+      if (!res[0]) { r.result = "非該当"; r.why = notHitWhy(cfg, it); }
       else if (mo === null) { r.result = "要確認"; r.why = "機種が分からない（機種を入れる）"; }
       else if (it.judge === "auto") { r.result = "該当"; r.why = "条件の設定がある"; }
       else if (it.judge === "ai") { r.result = "AI 判定"; r.why = "設定の中身で決まる"; }
@@ -473,7 +546,8 @@
       known_issue_missing: !!target && kiCov(kb, to) === false,
       hop_ki_missing: hops.filter(function (h) { return kiCov(kb, h) === false; }),
       ki_partial: hops.filter(function (h) { return kiCov(kb, h) === "upgrade"; }),
-      full_config: cfg.full
+      full_config: cfg.full,
+      tool_version: opts.toolVersion || ""
     };
     return { cfg: cfg, results: res, meta: meta };
   }
@@ -496,6 +570,7 @@
   function reportMarkdown(out) {
     var res = out.results, meta = out.meta;
     var L = ["# ファームアップ影響確認 " + meta.from + " → " + meta.to, ""];
+    L.push("- ツールの版: " + (meta.tool_version || "不明"));
     L.push("- 機種: " + (meta.model || "不明"));
     L.push("- 通るパス: " + [meta.from].concat(meta.hops, [meta.to]).join(" → "));
     L.push("- 見たリリースノートの版: " + meta.versions.join(", "));
@@ -529,7 +604,7 @@
     var ns = res.filter(function (r) { return r.result === "非該当"; });
     if (ns.length) {
       L.push("", "## 非該当（" + ns.length + "）", "", "| 版 | 重さ | 見出し | 理由 |", "|---|---|---|---|");
-      ns.forEach(function (r) { L.push("| " + r.item.version + " | " + r.item.severity + " | " + r.item.title + " | " + r.why + " |"); });
+      ns.forEach(function (r) { L.push("| " + r.item.version + " | " + r.item.severity + " | " + r.item.title + " | " + r.why.replace(/\|/g, "\\|") + " |"); });
     }
     return L.join("\n") + "\n";
   }

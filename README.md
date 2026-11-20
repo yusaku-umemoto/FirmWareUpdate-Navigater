@@ -10,7 +10,9 @@ config は社外に出ない。
 
 ## 使い方（ブラウザ版・Python 不要）
 
-**`dist/fortigate-fw-check.html` を 1 つ配るだけ**。ブラウザ（Edge・Chrome）でファイルを開けば動く。インストール・Python・ネット接続は要らず、config はブラウザの外に出ない（通信しない作り）。
+**`dist/fortigate-fw-check.html` を 1 つ配るだけ**。ブラウザ（Edge・Chrome）でファイルを開けば動く。インストール・Python は要らず、config はブラウザの外に出ない。
+
+通信は、開いたときに GitHub の `version.json`（版数・日付・変更の一言だけ）を読む 1 回だけ。手元の HTML が古ければ画面の上に警告が出るので、最新の HTML を取り直す。config は送らない。ネットにつながらない（会社のプロキシで止められるなど）ときは「確かめられなかった」と出るだけで、判定はそのまま使える。
 
 1. config のファイルを画面に落とす（または貼り付ける）。機種と版は config の先頭から自動で入る
 2. 上げる先の版と、Upgrade Path Tool に出る途中の版を入れて「判定する」。途中の版なしで直接上げる（例 7.4.13 → 7.6.8）なら「なし」と入れる
@@ -19,7 +21,7 @@ config は社外に出ない。
 
 試しに使うなら `samples/sample-60f-7.4.6.conf`（危ない設定をわざと入れた架空の config）を落とす。
 
-知識ベースを直したら、作る側（Python のある PC）で組み立て直して配り直す。
+知識ベースや判定を直したら、作る側（Python のある PC）で **`version.json` の版数を上げ**、`CHANGELOG.md` に一行足し、組み立て直して push する。push すると、古い HTML を開いた人に警告が出る。
 
 ```bash
 python3 tools/build_html.py
@@ -39,7 +41,7 @@ python3 fwnav.py check running-config.txt --from 7.4.6 --to 7.6.8 --path 7.4.8,7
 
 | ファイル | 中身 |
 |---|---|
-| `report.md` | 結果。**該当**（設定の行が根拠）・**AI 判定**・**要確認**（人が見る）・**非該当**（理由つき） |
+| `report.md` | 結果。**該当**（設定の行が根拠）・**AI 判定**・**要確認**（人が見る）・**非該当**（何の条件に当たらなかったか。値を明示しているから当たらないときはその行も） |
 | `ai-prompt.md` | 社内 AI にそのまま貼る文。AI 判定の項目だけを、関係する設定の行だけ添えて並べる。答えは表（ID・YES/NO/不明・根拠の行） |
 | `result.json` | 機械が読む形 |
 
@@ -63,6 +65,8 @@ python3 fwnav.py flatten running-config.txt                          # 平らに
 
 ```
 dist/fortigate-fw-check.html ブラウザ版（配るのはこれだけ。tools/build_html.py で作る）
+version.json                 ツールの版数（ブラウザ版はここを読んで最新版かを確かめる）
+CHANGELOG.md                 変更の記録
 web/engine.js                ブラウザ版の判定の本体（fwnav.py と同じ動き）
 web/app.html                 ブラウザ版の画面のひな形
 samples/                     試し用の架空の config

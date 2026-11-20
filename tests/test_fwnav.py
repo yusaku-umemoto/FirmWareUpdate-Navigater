@@ -208,6 +208,20 @@ class CodexFindings(unittest.TestCase):
         body = "".join(f"    set k{i} v\n" for i in range(fwnav.FULL_GLOBAL_KEYS))
         self.assertTrue(fwnav.Config("config system global\n" + body + "end\n").full)
 
+    def test_not_hit_reason_names_condition(self):
+        it = {"when": {"any": [{"path": "firewall shaping-policy[*]"},
+                               {"path": "firewall policy[*]", "key": "traffic-shaper", "op": "exists"}]}}
+        why = fwnav.not_hit_why(fwnav.Config(CFG), it)
+        self.assertIn("firewall shaping-policy[*] がある、または firewall policy[*] の traffic-shaper が書かれている", why)
+
+    def test_not_hit_reason_shows_explicit_value(self):
+        # 既定値の変更の項目で、値を明示しているから当たらないことを書く
+        it = {"when": {"path": "firewall ssl-ssh-profile[*] https", "key": "udp-not-quic", "op": "unset"}}
+        cfg = fwnav.Config(MULTI_VDOM_CFG.replace("set ports 443", "set udp-not-quic block"))
+        why = fwnav.not_hit_why(cfg, it)
+        self.assertIn("値を明示している", why)
+        self.assertIn("udp-not-quic = allow", why)
+
     def test_upgrade_bug_selection(self):
         it = {"fixed_in": "7.6.7"}
         self.assertEqual(fwnav.upgrade_bug_hits(it, ["7.6.4", "7.6.6", "7.6.8"]), ["7.6.4", "7.6.6"])
@@ -256,6 +270,18 @@ class Versions(unittest.TestCase):
         self.assertTrue(fwnav.model_ok(it, "FGT60F", groups))
         self.assertFalse(fwnav.model_ok(it, "FGT100F", groups))
         self.assertIsNone(fwnav.model_ok(it, None, groups))
+
+
+class Release(unittest.TestCase):
+    def test_dist_has_current_version(self):
+        # 版数を上げたのに HTML を作り直し忘れていないか
+        import json
+        root = Path(__file__).resolve().parent.parent
+        ver = json.loads((root / "version.json").read_text(encoding="utf-8"))["version"]
+        self.assertTrue(fwnav.vtuple(ver))
+        self.assertEqual(fwnav.tool_version(), ver)
+        html = (root / "dist" / "fortigate-fw-check.html").read_text(encoding="utf-8")
+        self.assertIn(f'"version": "{ver}"', html)
 
 
 if __name__ == "__main__":

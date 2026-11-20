@@ -13,7 +13,8 @@ for (const f of fs.readdirSync(kbDir).filter((x) => /^\d.*\.json$/.test(x)).sort
 }
 const text = fs.readFileSync(conf, "utf8");
 const direct = hops === "direct";
-const r = F.check(kb, text, { from: from || null, to, hops: hops && !direct ? hops.split(",") : [], direct, configName: path.basename(conf) });
+const toolVersion = JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version;
+const r = F.check(kb, text, { from: from || null, to, hops: hops && !direct ? hops.split(",") : [], direct, toolVersion, configName: path.basename(conf) });
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, "report.md"), F.reportMarkdown(r));
 fs.writeFileSync(path.join(out, "ai-prompt.md"), F.aiPromptMarkdown(r));

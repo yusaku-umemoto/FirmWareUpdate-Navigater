@@ -314,6 +314,12 @@ def vtuple(v):
     return tuple(int(x) for x in v.split("."))
 
 
+def tool_version():
+    """この道具の版数（version.json）。"""
+    f = Path(__file__).resolve().parent / "version.json"
+    return json.loads(f.read_text(encoding="utf-8"))["version"] if f.exists() else ""
+
+
 def load_kb():
     kb = {}
     for f in sorted(KB_DIR.glob("[0-9]*.json")):
@@ -440,6 +446,82 @@ def model_ok(it, model, groups):
     return True
 
 
+# ---------------------------------------------------------------- 条件を日本語の文にする（非該当の理由に使う）
+
+def _vals_ja(v):
+    return "・".join(str(x) for x in v) if isinstance(v, list) else str(v)
+
+
+REGEX_JA = {"^[1-9]": "0 より大きい", "[A-Za-z0-9]": "空でない"}  # よく使う書き方は言葉にする
+
+
+def describe_cond(c, inner=False):
+    """条件を「何があれば当たるか」の日本語にする。inner は per_block の中（パスを省く）。"""
+    if "per_block" in c:
+        body = describe_cond({k: v for k, v in c.items() if k != "per_block"}, True)
+        return f"同じ {c['per_block']} の中で {body}"
+    for k, sep in (("any", "、または "), ("all", "、かつ ")):
+        if k in c:
+            parts = [describe_cond(x, inner) for x in c[k]]
+            parts = [f"（{x}）" if ("、または " in x or "、かつ " in x) else x for x in parts]
+            return sep.join(parts)
+    if "not" in c:
+        return f"「{describe_cond(c['not'], inner)}」ではない"
+    path = c.get("path", "").lstrip("=")
+    key, op, val = c.get("key"), c.get("op", "exists"), c.get("value")
+    if key is None:
+        return f"{path} がある" if op != "absent" else f"{path} が無い"
+    head = key if inner and not path else f"{path} の {key}"
+    return {
+        "exists": f"{head} が書かれている",
+        "absent": f"{head} が書かれていない",
+        "unset": f"{head} を書いていない（既定値で動く）",
+        "eq": f"{head} が {_vals_ja(val)}",
+        "ne": f"{head} が {_vals_ja(val)} 以外",
+        "in": f"{head} が {_vals_ja(val)} のどれか",
+        "regex": f"{head} が " + (REGEX_JA.get(val) or f"/{val}/ に合う") if op == "regex" else "",
+        "intf_regex": f"{head}（ゾーンの中も見る）が /{val}/ に合う",
+    }.get(op, f"{head} {op} {val}")
+
+
+def _unset_leaves(c, pb=None):
+    if not isinstance(c, dict):
+        return
+    pb = c.get("per_block", pb)
+    for k in ("any", "all"):
+        for x in c.get(k, []):
+            yield from _unset_leaves(x, pb)
+    if c.get("op") == "unset":
+        yield c.get("path", pb), c["key"]
+
+
+def _without_unset(c):
+    """unset の条件を「いつも成り立つ」に置き換えた条件。"""
+    if isinstance(c, list):
+        return [_without_unset(x) for x in c]
+    if not isinstance(c, dict):
+        return c
+    if c.get("op") == "unset":
+        return {"all": []}
+    return {k: _without_unset(v) if k in ("any", "all", "not") else v for k, v in c.items()}
+
+
+def not_hit_why(cfg, it):
+    """非該当の理由。何の条件に当たらなかったかを書く。既定値の変更の項目で値を明示していれば、それも書く。"""
+    why = f"条件に当たらない（当たる条件：{describe_cond(it['when'])}）"
+    shown = []
+    # 値を明示していなければ当たっていた（＝明示した値が当たらない理由）ときだけ書く
+    leaves = list(_unset_leaves(it["when"])) if eval_cond(cfg, _without_unset(it["when"]))[0] else []
+    for path, key in leaves:
+        for ln in cfg.match_lines(path, key)[:2]:
+            t = fmt_line(*ln)
+            if t not in shown:
+                shown.append(t)
+    if shown:
+        why += "。値を明示しているので既定値の変更は効かない：" + "／".join(shown[:2])
+    return why
+
+
 # ---------------------------------------------------------------- 判定と出力
 
 def judge(cfg, items, model, groups):
@@ -456,7 +538,7 @@ def judge(cfg, items, model, groups):
                 ok, ev = True, []
             r["evidence"] = ev
             if not ok:
-                r["result"], r["why"] = "非該当", "条件の設定が無い"
+                r["result"], r["why"] = "非該当", not_hit_why(cfg, it)
             elif mo is None:
                 r["result"], r["why"] = "要確認", "機種が分からない（機種を入れる）"
             elif it["judge"] == "auto":
@@ -509,8 +591,14 @@ def ki_cov(kb, v):
     return kb[v].get("coverage", {}).get("known_issue", True)
 
 
+def cell(s):
+    """表のセルに入れる文字（| は表の区切りになるので逃がす）。"""
+    return s.replace("|", "\\|")
+
+
 def write_report(res, meta, out):
     L = [f"# ファームアップ影響確認 {meta['from']} → {meta['to']}", ""]
+    L.append(f"- ツールの版: {meta.get('tool_version') or '不明'}")
     L.append(f"- 機種: {meta['model'] or '不明'}")
     L.append(f"- 通るパス: {' → '.join([meta['from']] + meta['hops'] + [meta['to']])}")
     L.append(f"- 見たリリースノートの版: {', '.join(meta['versions'])}")
@@ -550,7 +638,7 @@ def write_report(res, meta, out):
         L += ["", f"## 非該当（{len(rs)}）", "", "| 版 | 重さ | 見出し | 理由 |", "|---|---|---|---|"]
         for r in rs:
             it = r["item"]
-            L.append(f"| {it['version']} | {it['severity']} | {it['title']} | {r['why']} |")
+            L.append(f"| {it['version']} | {it['severity']} | {it['title']} | {cell(r['why'])} |")
     (out / "report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
@@ -673,7 +761,8 @@ def cmd_check(a):
             "kb_missing": [v for v in exp if v not in kb], "config": Path(a.config).name,
             "known_issue_missing": a.to in kb and ki_cov(kb, a.to) is False,
             "hop_ki_missing": [h for h in hops if ki_cov(kb, h) is False],
-            "ki_partial": [h for h in hops if ki_cov(kb, h) == "upgrade"], "full_config": cfg.full}
+            "ki_partial": [h for h in hops if ki_cov(kb, h) == "upgrade"], "full_config": cfg.full,
+            "tool_version": tool_version()}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     write_report(res, meta, out)

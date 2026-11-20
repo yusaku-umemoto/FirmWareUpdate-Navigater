@@ -26,6 +26,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 syst
 header { padding: 20px 24px 8px; max-width: 1080px; margin: 0 auto; }
 header h1 { font-size: 22px; margin: 0 0 4px; }
 header p { margin: 0; color: var(--muted); font-size: 13px; }
+.ver { display: inline-block; margin: 8px 0 0 8px; color: var(--muted); font-size: 12px; }
+.update { margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-size: 13px; background: var(--ai-bg); color: var(--ai); border: 1px solid var(--line); }
+.update.old { background: var(--hit-bg); color: var(--hit); font-weight: 600; }
+.update a { color: inherit; }
 .privacy { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px; background: var(--chk-bg); color: var(--chk); font-size: 12px; }
 main { max-width: 1080px; margin: 0 auto; padding: 8px 24px 48px; }
 section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
@@ -96,7 +100,9 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 24px 32px; color: var(--m
 <header>
   <h1>FortiGate ファームアップ影響チェック</h1>
   <p>リリースノートの項目のうち、手元の config に効くものを洗い出します。</p>
-  <span class="privacy">config はこのブラウザの中だけで処理します。どこにも送りません（通信なし）</span>
+  <span class="privacy">config はこのブラウザの中だけで処理します。どこにも送りません（通信は最新版の確認だけ）</span>
+  <span class="ver" id="ver"></span>
+  <div class="update" id="update" hidden></div>
 </header>
 <main>
   <section class="panel">
@@ -184,6 +190,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 24px 32px; color: var(--m
 <footer id="foot"></footer>
 
 <script id="kb-data" type="application/json">__KB_JSON__</script>
+<script id="app-data" type="application/json">__APP_JSON__</script>
 <script>
 __ENGINE_JS__
 </script>
@@ -192,6 +199,7 @@ __ENGINE_JS__
   "use strict";
   var F = window.FWNAV;
   var KB = JSON.parse(document.getElementById("kb-data").textContent);
+  var APP = JSON.parse(document.getElementById("app-data").textContent);
   var $ = function (id) { return document.getElementById(id); };
   var state = { out: null, filter: null, fileName: "" };
   var KIND = { "該当": "hit", "AI 判定": "ai", "要確認": "chk", "非該当": "non" };
@@ -207,6 +215,40 @@ __ENGINE_JS__
   $("kbinfo").textContent = "知識ベース: " + versions[0] + "〜" + versions[versions.length - 1] + "（" + versions.length + " 版）";
   $("foot").textContent = "知識ベースの作成日 " + KB.built + "。項目はリリースノートの要約と判定の条件です。最後は各項目の原文で確かめてください。" +
     "「非該当」は知識ベースの条件に当たらなかったという意味で、知識ベースに無い変更は見ていません。";
+
+  // ---- 最新版の確認（GitHub の version.json を読むだけ。config は送らない）
+  $("ver").textContent = "ツールの版 " + APP.version + "（" + APP.date + "）";
+  function link(text, href) { var a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = text; return a; }
+  function showUpdate(cls, parts) {
+    var u = $("update");
+    u.className = "update" + (cls ? " " + cls : "");
+    u.textContent = "";
+    parts.forEach(function (x) { u.appendChild(typeof x === "string" ? document.createTextNode(x) : x); });
+    u.hidden = false;
+  }
+  function checkLatest() {
+    if (!window.fetch || !APP.latest_url) return;
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    fetch(APP.latest_url + "?t=" + Date.now(), { cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (latest) {
+        clearTimeout(timer);
+        if (!latest || !F.isVersion(String(latest.version))) throw new Error("版数が読めない");
+        if (cmp(latest.version, APP.version) > 0) {
+          showUpdate("old", ["⚠ この HTML は古い版です（今 " + APP.version + "、最新 " + latest.version + "・" + latest.date + "）。",
+            latest.notes ? "　最新の変更: " + latest.notes + "。" : "", "　", link("最新の HTML を取る", APP.download_url), "　／　", link("変更の記録", APP.changelog_url)]);
+        } else {
+          $("ver").textContent += "　最新版です";
+        }
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        showUpdate("", ["最新版かどうか確かめられませんでした（ネットにつながらない、会社のプロキシで止められた など）。今の版は " + APP.version + "。",
+          "　", link("GitHub の変更の記録", APP.changelog_url), " で最新の版数を確かめてください。"]);
+      });
+  }
+  checkLatest();
 
   // ---- config の読み込み
   function decode(buf) {
@@ -267,7 +309,7 @@ __ENGINE_JS__
     hops.forEach(function (h) { if (F.isVersion(h) && F.isVersion(frm) && (cmp(h, frm) <= 0 || cmp(h, to) >= 0)) errs.push("途中の版「" + h + "」は、上げる前と上げる先の間にしてください。"); });
     if (errs.length) { $("err").textContent = errs.join("\n"); return; }
     try {
-      state.out = F.check(KB, text, { from: frm, to: to, hops: hops, direct: direct, model: $("model").value.trim() || null, configName: state.fileName });
+      state.out = F.check(KB, text, { from: frm, to: to, hops: hops, direct: direct, toolVersion: APP.version, model: $("model").value.trim() || null, configName: state.fileName });
     } catch (e) {
       $("err").textContent = "判定できませんでした: " + e.message;
       return;
